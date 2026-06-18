@@ -37,6 +37,6 @@ jobs:
       # 5. Run the script and inject the hidden secrets
       - name: Run Volora Pipeline
         env:
-          SUPABASE_PWD: ${{ secrets.SUPABASE_PWD }}
-          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          SUPERKEY: ${{ secrets.SUPERKEY }}
+          APISUPERKEY: ${{ secrets.APISUPERKEY }}
         run: Rscript pipeline.R
