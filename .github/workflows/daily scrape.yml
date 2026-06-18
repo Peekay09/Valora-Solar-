@@ -39,4 +39,4 @@ jobs:
         env:
           SUPERKEY: ${{ secrets.SUPERKEY }}
           APISUPERKEY: ${{ secrets.APISUPERKEY }}
-        run: Rscript DA final pipe.R
+        run: Rscript final_pipe.R
