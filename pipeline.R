@@ -1,7 +1,7 @@
 library(rvest)
 library(tibble)
 library(tidyverse)
-library(randomForest)
+
 library(httr)
 library(jsonlite)
 library(DBI)
