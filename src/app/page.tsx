@@ -1,0 +1,948 @@
+"use client"; // Enables dynamic clicking and tab state
+
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/Tabs";
+import { KineticText } from "@/components/ui/kinetic-text";
+import { MorphingText } from "@/components/ui/morphing-text";
+import { locations } from '@/lib/location';
+import { cx } from '@/lib/utils';
+import { RiArrowRightLine, RiCheckLine, RiErrorWarningLine, RiEyeLine, RiLockPasswordFill, RiServerFill, RiUploadFill } from '@remixicon/react';
+import { Card } from '@tremor/react';
+import {
+  AutoComplete,
+  Button,
+  Checkbox,
+  Col,
+  ConfigProvider,
+  InputNumber,
+  Row,
+  Select,
+  theme
+} from 'antd';
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from 'react';
+
+// 1. DYNAMIC MAP IMPORT (Prevents Next.js Server Crashes)
+const LeafletMap = dynamic<any>(
+  () => import("@/components/ui/cpt-dotted-map").then((mod) => mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full min-h-[400px] bg-slate-900/50 flex items-center justify-center text-slate-500 rounded-xl">
+        <span className="animate-pulse tracking-widest text-xs font-mono">SYNCING SUPABASE PIPELINE...</span>
+      </div>
+    ),
+  }
+);
+
+export type CptMarker = {
+  lat: number;
+  lng: number;
+  label: string;
+  isDeal?: boolean;
+  suburb?: string;
+  variance?: number;
+  deal_score?: number;
+  deal_status?: string;
+};
+
+export default function VoloraPlatform() {
+  // 1. Navigation & UI State
+  const [activeTab, setActiveTab] = useState<'overview' | 'valuation' | 'benchmarks'>('overview');
+  const [selectedSuburb, setSelectedSuburb] = useState<string | null>(null);
+  const [backendStats, setBackendStats] = useState<any>(null);
+  const [isFetchingStats, setIsFetchingStats] = useState(false);
+
+  // 2. LIVE MAP DATA STATE
+  const [activeDeals, setActiveDeals] = useState<CptMarker[]>([]);
+
+  // 3. Real Estate Input States
+  const [suburb, setSuburb] = useState('');
+  const [bedrooms, setBedrooms] = useState(3);
+  const [bathrooms, setBathrooms] = useState(2);
+  const [erf_size, setErfSize] = useState(120);
+  const [floor, setFloor] = useState(120);
+  const [gar, setGar] = useState(2);
+  const [lease_term, setLeaseTerm] = useState('Long-term');
+  const [askingPrice, setAskingPrice] = useState<number | null>(null);
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [propType, setPropType] = useState('House');
+  const [lowerbound,setlowerbound] = useState<number>(0);
+  const [upperbound,setupperbound] = useState<number>(0);
+
+  // 4. Engine Memory
+  const [isLoading, setIsLoading] = useState(false);
+  const [predictionResult, setPredictionResult] = useState<any>(null);
+  const [num_df, setNumDf] = useState<number>(0);
+  const [arb_count, setArbCount] = useState<number>(0);
+  const [avg_rent, setavg_rent] = useState<number>(0);
+  const [sq_meter, setmeter] = useState<number>(0);
+
+  // 5. Mapbox Native Refs (For Benchmarks Tab)
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+
+  const amenityOptions = [
+    { label: 'Pool', value: 'has_pool' },
+    { label: 'Furnished', value: 'is_furnished' },
+    { label: '(Fibre)Internet', value: 'has_internet' },
+    { label: 'HouseShare', value: 'is_HouseShare' },
+    { label: 'Back-up', value: 'has_backup' },
+    { label: 'Ocean View', value: 'has_ocean_view' },
+    { label: 'Mountain View', value: 'has_mountain_view' },
+    { label: '24/hr Security', value: 'has_sercurity' },
+    { label: 'Upgraded', value: 'is_modern' },
+  ];
+
+  // 6. FETCH LIVE MAP DATA FROM FASTAPI
+  useEffect(() => {
+    fetch("http://localhost:8000/api/training-listings")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch map data");
+        return res.json();
+      })
+      .then((data) => {
+        // A. Set the terminal bar numbers safely
+        if (data.statbar) {
+          setNumDf(data.statbar[0]?.total_count || 0);
+          setArbCount(data.statbar[1]?.arb_count || 0);
+          setavg_rent(data.statbar[2]?.avg_rent || 0);
+          setmeter(data.statbar[3]?.sq_meter || 0);
+        }
+
+        // B. Format the markers
+        if (data.listings) {
+          const formattedMarkers = data.listings.map((listing: any) => {
+            const variance = Math.round(((listing.predicted_value - listing.price) / listing.predicted_value) * 100);
+
+            let status = 'FAIR';
+            if (variance >= 15) status = 'BARGAIN';
+            else if (variance <= -15) status = 'OVERPRICED';
+
+            const jitterLat = (Math.random() - 0.5) * 0.01;
+            const jitterLng = (Math.random() - 0.5) * 0.01;
+
+            const parsedLat = parseFloat(listing.lat);
+            const parsedLng = parseFloat(listing.lng);
+
+            const safeLat = !isNaN(parsedLat) ? parsedLat : -33.9249;
+            const safeLng = !isNaN(parsedLng) ? parsedLng : 18.4241;
+
+            return {
+              lat: safeLat + jitterLat,
+              lng: safeLng + jitterLng,
+              suburb: listing.suburb || "UNKNOWN",
+              variance: variance || 0,
+              deal_score: listing.deal_score ?? 0,
+              deal_status: status,
+              isDeal: variance >= 0,
+              label: `${listing.suburb || "UNKNOWN"} - ${status}`,
+            };
+          });
+
+          setActiveDeals(formattedMarkers);
+        }
+      })
+      .catch((error) => {
+        console.error("Map Pipeline Error:", error);
+      });
+  }, []);
+
+  // 7. MAPBOX PRELOAD
+  useEffect(() => {
+    if (!document.getElementById('mapbox-cdn-css')) {
+      const link = document.createElement('link');
+      link.id = 'mapbox-cdn-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/3.2.0/mapbox-gl.css';
+      document.head.appendChild(link);
+    }
+    if (!document.getElementById('mapbox-cdn-js')) {
+      const script = document.createElement('script');
+      script.id = 'mapbox-cdn-js';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/3.2.0/mapbox-gl.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // 8. MAPBOX INITIALIZATION (Benchmarks Tab)
+  useEffect(() => {
+    if (activeTab === 'benchmarks' && mapContainerRef.current && !mapInstanceRef.current) {
+      const initialize = () => {
+        const mapboxgl = (window as any).mapboxgl;
+        if (!mapboxgl) return;
+        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1IjoiZG91Z2gxIiwiYSI6ImNtcWU4Y3hjcTAxenoycHM2MnI3NTdqbjAifQ.eBh1uCE7yKod43GQoavW5g';
+
+        mapInstanceRef.current = new mapboxgl.Map({
+          container: mapContainerRef.current!,
+          style: 'mapbox://styles/mapbox/dark-v11',
+          center: [18.4232, -33.9249],
+          zoom: 11
+        });
+
+        mapInstanceRef.current.on('load', () => {
+          // Force a resize calculation to ensure the canvas doesn't load invisibly
+          mapInstanceRef.current.resize();
+
+          mapInstanceRef.current.addSource('suburbs', { type: 'geojson', data: '/cape-town-suburbs.json' });
+          mapInstanceRef.current.addLayer({ id: 'suburbs-fill', type: 'fill', source: 'suburbs', paint: { 'fill-color': '#000000', 'fill-opacity': 0.1 } });
+          mapInstanceRef.current.addLayer({ id: 'suburbs-highlight', type: 'fill', source: 'suburbs', paint: { 'fill-color': '#10b981', 'fill-opacity': 0.4 }, filter: ['==', 'OFC_SBRB_NAME', ''] });
+          mapInstanceRef.current.addLayer({ id: 'suburbs-line', type: 'line', source: 'suburbs', paint: { 'line-color': '#334155', 'line-width': 1 } });
+
+          mapInstanceRef.current.on('mousemove', 'suburbs-fill', (e: any) => {
+            mapInstanceRef.current.getCanvas().style.cursor = 'pointer';
+            if (e.features.length > 0) mapInstanceRef.current.setFilter('suburbs-highlight', ['==', 'OFC_SBRB_NAME', e.features[0].properties.OFC_SBRB_NAME]);
+          });
+
+          mapInstanceRef.current.on('mouseleave', 'suburbs-fill', () => {
+            mapInstanceRef.current.getCanvas().style.cursor = '';
+            mapInstanceRef.current.setFilter('suburbs-highlight', ['==', 'OFC_SBRB_NAME', '']);
+          });
+
+          // Click Listener Outside Mouseleave
+          mapInstanceRef.current.on('click', 'suburbs-fill', (e: any) => {
+            if (e.features.length > 0) {
+              const clickedSuburb = e.features[0].properties.OFC_SBRB_NAME;
+              setSelectedSuburb(clickedSuburb);
+            }
+          });
+        });
+      };
+
+      // Robust Initialization check
+      if ((window as any).mapboxgl) {
+        initialize();
+      } else {
+        const script = document.getElementById('mapbox-cdn-js') as HTMLScriptElement;
+        if (script) {
+          script.addEventListener('load', initialize);
+        }
+      }
+    }
+
+    // Safely cleanup map to prevent ghost instances
+    return () => {
+      if (activeTab !== 'benchmarks' && mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [activeTab]);
+
+  const handleCalculate = async () => {
+    setIsLoading(true);
+    try {
+      const payload = {
+        proptype: propType,
+        location: suburb,
+        beds: bedrooms,
+        bath: bathrooms,
+        erf_size: erf_size,
+        floor: floor,
+        gar: gar,
+        lease_term: lease_term,
+        has_Pool: amenities.includes('has_pool'),
+        is_furnished: amenities.includes('is_furnished'),
+        has_internet: amenities.includes('has_internet'),
+        has_sercurity: amenities.includes('has_sercurity'),
+        has_backup: amenities.includes('has_backup'),
+        is_HouseShare: amenities.includes('is_HouseShare'),
+        has_ocean_view: amenities.includes('has_ocean_view'),
+        has_mountain_view: amenities.includes('has_mountain_view'),
+        is_modern: amenities.includes('is_modern'),
+        asking_price: askingPrice || 0
+      };
+
+      const response = await fetch("http://localhost:8000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        alert(`Server rejected the request. Status: ${response.status}`);
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      setPredictionResult(data);
+    } catch (error) {
+      console.error(error);
+      alert("Bridge failed! Is your Python server running?");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const statsData = [
+    {
+      name: 'Volora Value',
+      stat: predictionResult?.predicted_value ? `R ${predictionResult.predicted_value.toLocaleString('ZA')}` : 'N/A',
+      range: predictionResult?.predicted_value ? `R ${predictionResult.lower_bound.toLocaleString('ZA')} - R ${predictionResult.upper_bound.toLocaleString('ZA')}` : 'N/A',
+      status: predictionResult?.predicted_value ? 'within' : 'error',
+    },
+    {
+      name: 'Asking Price',
+      stat: askingPrice ? `R ${askingPrice.toLocaleString('ZA')}` : 'N/A',    
+    },
+    {
+      name: 'Monthly Variance',
+      stat: predictionResult?.price_diff != null ? `R ${Math.abs(predictionResult.price_diff).toLocaleString('ZA')}` : 'N/A',
+      range: predictionResult?.percent_diff != null ? `${predictionResult.percent_diff.toFixed(2)}%` : 'N/A',
+      status: (predictionResult?.price_diff && predictionResult.price_diff > 0) ? 'within' : 'error',
+    },
+    {
+      name: 'Annual Impact',
+      stat: predictionResult?.price_diff != null ? `R ${Math.abs(predictionResult.price_diff * 12).toLocaleString('ZA')}` : 'N/A',
+      range: predictionResult?.price_diff != null && predictionResult.price_diff > 0 ? "Value Gained" : "Revenue Risk",
+      status: (predictionResult?.price_diff && predictionResult.price_diff > 0) ? 'within' : 'error',
+    }
+  ];
+
+  const texts = [
+    "Introducing ",
+    "Valora",
+  ];
+
+  useEffect(() => {
+    if (!selectedSuburb) {
+      setBackendStats(null);
+      return;
+    }
+
+    const fetchDeepStats = async () => {
+      setIsFetchingStats(true);
+      try {
+        const response = await fetch(`http://localhost:8000/api/clickedsuburb?suburb=${encodeURIComponent(selectedSuburb)}`);
+        if (!response.ok) throw new Error("FastAPI rejected the request");
+
+        const data = await response.json();
+        setBackendStats(data);
+      } catch (error) {
+        console.error("Engine Fetch Error:", error);
+      } finally {
+        setIsFetchingStats(false);
+      }
+    };
+
+    fetchDeepStats();
+  }, [selectedSuburb]);
+
+  // Sparkline Tab Data
+  const sparklineData = [
+    { title: 'Median Rent', subtitle: '450 Shares', value: `R${backendStats?.avgrent_one ?? ''}`, bars: [40, 60, 50, 100] },
+    { title: 'Number of  Listings', subtitle: '112 Shares', value: backendStats?.one_bed ?? '', bars: [60, 70, 90, 80] },
+    { title: ' Price Per m²', subtitle: '85 Shares', value: backendStats?.sqreent_one ?? '', bars: [40, 50, 100, 70] },
+  ];
+
+  const sparklineData2 = [
+    { title: 'Median Rent', subtitle: '450 Shares', value: `R${backendStats?.avgrent_two ?? ''}`, bars: [40, 60, 50, 100] },
+    { title: 'Number of  Listings', subtitle: '112 Shares', value: backendStats?.two_bed ?? '', bars: [60, 70, 90, 80] },
+    { title: ' Price Per m²', subtitle: '85 Shares', value: backendStats?.sqreent_two ?? '', bars: [40, 50, 100, 70] },
+  ];
+
+  const sparklineData3 = [
+    { title: 'Median Rent', subtitle: '450 Shares', value: `R${backendStats?.avgrent_three ?? ''}`, bars: [40, 60, 50, 100] },
+    { title: 'Number of  Listings', subtitle: '112 Shares', value: backendStats?.three_bed ?? '', bars: [60, 70, 90, 80] },
+    { title: ' Price Per m²', subtitle: '85 Shares', value: backendStats?.sqreent_three ?? '', bars: [40, 50, 100, 70] },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+      {/* GLOBAL NAVIGATION */}
+      <div className="p-4 w-full sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto bg-slate-900/80 backdrop-blur-md text-white rounded-full px-6 py-3 flex items-center justify-between shadow-lg border border-slate-800">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-white font-black text-xs">V</div>
+            <span className="font-bold text-lg tracking-tight">Valora</span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-6">
+            <button onClick={() => setActiveTab('overview')} className={`text-sm font-medium transition-colors ${activeTab === 'overview' ? 'text-indigo-400 font-semibold' : 'text-slate-400 hover:text-white'}`}>Overview</button>
+            <button onClick={() => setActiveTab('valuation')} className={`text-sm font-medium transition-colors ${activeTab === 'valuation' ? 'text-indigo-400 font-semibold' : 'text-slate-400 hover:text-white'}`}>Predictive Valuation</button>
+            <button onClick={() => setActiveTab('benchmarks')} className={`text-sm font-medium transition-colors ${activeTab === 'benchmarks' ? 'text-indigo-400 font-semibold' : 'text-slate-400 hover:text-white'}`}>Suburb Benchmarks</button>
+          </div>
+
+          <div>
+            <button className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2 px-4 rounded-full transition-all shadow-sm">Agent Portal</button>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN CONTENT AREA */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+
+        {/* VIEW 1: OVERVIEW */}
+        {activeTab === 'overview' && (
+          <><div className="w-full flex flex-col items-center gap-6">
+            <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="md:col-span-2 md:row-span-2 bg-slate-900/40 backdrop-blur-md border border-slate-800/60 flex flex-col justify-end p-10 shadow-2xl">
+                <h1 className="text-5xl font-black tracking-tight mb-4 text-white">
+                  Cape Town Property<br />Arbitrage, Quantified.
+                </h1>
+                <p className="text-slate-400 text-lg mb-8 max-w-lg">
+                  Stop guessing. Our engine processes market data to identify underpriced deals before they hit the market.
+                </p>
+                <button onClick={() => setActiveTab('valuation')} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-xl w-fit flex items-center gap-2 transition-all">
+                  Launch Engine <RiArrowRightLine className="size-5" />
+                </button>
+              </Card>
+
+              <Card className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60">
+                <p className="text-slate-400 text-sm">Deals Analyzed</p>
+                <p className="text-3xl font-bold mt-2 text-slate-100">{num_df}</p>
+              </Card>
+
+              <Card className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60">
+                <p className="text-slate-400 text-sm">Current Cape Town R/m²</p>
+                <p className="text-3xl font-bold mt-2 text-slate-100">R{sq_meter}</p>
+              </Card>
+
+              <Card className="md:col-span-3 bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-0 overflow-hidden">
+                <div className="p-8">
+                  <h2 className="text-2xl font-bold text-slate-100 mb-6">Live Arbitrage Heatmap</h2>
+                  <div className="w-full h-[500px]">
+                    <LeafletMap markers={activeDeals} />
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* PART B: LIVE STATS TERMINAL BAR */}
+            <div className="w-full max-w-6xl bg-slate-900/40 backdrop-blur-md border border-slate-800/60 rounded-xl grid grid-cols-2 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-slate-800/60 shadow-2xl overflow-hidden mt-4">
+              <div className="flex flex-col justify-center px-6 py-4">
+                <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">SYSTEM STATUS</span>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-sm font-bold text-slate-100 uppercase tracking-widest">Live</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-center px-6 py-4">
+                <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">ACTIVE LISTINGS ANALYSED</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-slate-100">{num_df}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-center px-6 py-4">
+                <span className="text-[9px] font-bold text-slate-500 tracking-wider mb-1">WC AVG RENT</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-slate-100">R{avg_rent}/monthly</span>
+                  <span className="text-xs font-medium text-emerald-400">+5.6%</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-center px-6 py-4">
+                <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">TOP YIELD (CBD)</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-slate-100">9.9%</span>
+                  <span className="text-xs font-medium text-emerald-400">+0.4%</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-center px-6 py-4">
+                <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">ARBITRAGE DEALS</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-amber-400">{arb_count}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Detected</span>
+                </div>
+              </div>
+            </div>
+
+
+            <div className="relative isolate overflow-hidden bg-transparent px-6 py-24 sm:py-32 lg:overflow-visible lg:px-0">
+
+              {/* The Clean Background Grid */}
+              <div className="absolute inset-0 -z-10 overflow-hidden">
+                <svg
+                  aria-hidden="true"
+                  className="absolute top-0 left-[max(50%,25rem)] h-256 w-512 -translate-x-1/2 mask-[radial-gradient(64rem_64rem_at_top,white,transparent)] stroke-slate-800/50"
+                >
+                  <defs>
+                    <pattern
+                      x="50%"
+                      y={-1}
+                      id="e813992c-7d03-4cc4-a2bd-151760b470a0"
+                      width={200}
+                      height={200}
+                      patternUnits="userSpaceOnUse"
+                    >
+                      <path d="M100 200V.5M.5 .5H200" fill="none" />
+                    </pattern>
+                  </defs>
+                  {/* THE UGLY GREY BLOCKS WERE DELETED FROM HERE */}
+                  <rect fill="url(#e813992c-7d03-4cc4-a2bd-151760b470a0)" width="100%" height="100%" strokeWidth={0} />
+                </svg>
+              </div>
+
+              <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-start lg:gap-y-10">
+                <div className="lg:col-span-2 lg:col-start-1 lg:row-start-1 lg:mx-auto lg:grid lg:w-full lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8">
+                  <div className="lg:pr-4">
+                    <div className="lg:max-w-lg">
+                      <p className="text-base/7 font-semibold text-indigo-400">Deploy faster</p>
+                      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-pretty text-white sm:text-2xl">
+                        <MorphingText texts={texts} />
+                      </h1>
+                      <p className="mt-6 text-xl/8 text-gray-300">
+                        We replace traditional, backward-looking market analysis with a live predictive engine.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="-mt-12 -ml-12 p-12 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:overflow-hidden relative">
+                  {/* The Live Feed Container */}
+                  <div className="relative w-full max-w-lg mx-auto sm:w-[32rem] h-[34rem] mt-8 lg:mt-0">
+
+                    {/* Card 3: The Background Card (Fairly Priced) */}
+                    <div className="absolute top-24 left-12 right-[-3rem] bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 shadow-2xl transform scale-90 opacity-40 transition-all duration-500 hover:scale-95 hover:opacity-60 cursor-default">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-slate-500"></div>
+                          <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">Rondebosch • 1 Bed</span>
+                        </div>
+                        <span className="bg-slate-800 text-slate-400 text-[10px] px-2 py-1 rounded font-bold">FAIR</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-slate-500">Asking Price</p>
+                          <p className="text-lg font-bold text-slate-300">R 12,500</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Volora Value</p>
+                          <p className="text-lg font-bold text-slate-300">R 12,200</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 2: The Middle Card (Overpriced) */}
+                    <div className="absolute top-12 left-6 right-[-1.5rem] bg-slate-900/60 backdrop-blur-md border border-rose-900/30 rounded-2xl p-6 shadow-2xl transform scale-95 opacity-80 transition-all duration-500 hover:scale-100 hover:opacity-100 cursor-default z-0">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-rose-500"></div>
+                          <span className="text-xs font-semibold text-slate-300 tracking-wider uppercase">Vredehoek • 3 Bed House</span>
+                        </div>
+                        <span className="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] px-2 py-1 rounded font-bold">STEEP (+18%)</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-slate-500">Asking Price</p>
+                          <p className="text-xl font-bold text-white">R 45,000</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Volora Value</p>
+                          <p className="text-xl font-bold text-rose-400">R 38,100</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-slate-800/50">
+                        <p className="text-xs text-slate-400"><span className="text-rose-400 font-semibold">Revenue Risk:</span> Property is priced R 82,800/yr over market average.</p>
+                      </div>
+                    </div>
+
+                    {/* Card 1: The Foreground Card (Massive Bargain) */}
+                    <div className="absolute top-0 left-0 right-0 bg-slate-900/80 backdrop-blur-xl border border-emerald-500/30 rounded-2xl p-6 shadow-[0_20px_50px_-12px_rgba(16,185,129,0.15)] transform scale-100 transition-all duration-500 hover:scale-[1.02] hover:-translate-y-2 cursor-pointer z-10 group">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                          </span>
+                          <span className="text-xs font-bold text-white tracking-wider uppercase">Sea Point • 2 Bed Apt</span>
+                        </div>
+                        <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-3 py-1 rounded font-black tracking-widest animate-pulse">ARBITRAGE</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 bg-slate-950/50 rounded-xl p-4 border border-slate-800/50">
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Listed Asking Price</p>
+                          <p className="text-2xl font-bold text-slate-300">R 18,000</p>
+                        </div>
+                        <div className="relative">
+                          {/* Tiny glowing background behind the good number */}
+                          <div className="absolute inset-0 bg-emerald-500/10 blur-xl rounded-full transition-opacity group-hover:bg-emerald-500/20"></div>
+                          <p className="text-[10px] text-emerald-400/80 uppercase tracking-wider mb-1 relative">Volora Baseline</p>
+                          <p className="text-2xl font-bold text-emerald-400 relative">R 24,500</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-3 gap-3">
+                        <div className="bg-slate-800/40 rounded-lg p-3 text-center border border-slate-700/50 shadow-inner">
+                          <p className="text-[9px] text-slate-500 uppercase font-semibold mb-1">Deal Score</p>
+                          <p className="text-sm font-bold text-emerald-400">92/100</p>
+                        </div>
+                        <div className="bg-slate-800/40 rounded-lg p-3 text-center border border-slate-700/50 shadow-inner">
+                          <p className="text-[9px] text-slate-500 uppercase font-semibold mb-1">Variance</p>
+                          <p className="text-sm font-bold text-emerald-400">- 26.5%</p>
+                        </div>
+                        <div className="bg-slate-800/40 rounded-lg p-3 text-center border border-slate-700/50 shadow-inner">
+                          <p className="text-[9px] text-slate-500 uppercase font-semibold mb-1">Est. Yield</p>
+                          <p className="text-sm font-bold text-emerald-400">11.2%</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 pt-4 border-t border-slate-800/50 flex items-center justify-between">
+                        <p className="text-[10px] text-slate-400 font-medium tracking-wide">Scraped 14 mins ago via pipeline</p>
+                        <div className="text-xs text-emerald-400 font-bold group-hover:text-emerald-300 transition-colors flex items-center gap-1">
+                          View Listing <span>&rarr;</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+                <div className="lg:col-span-2 lg:col-start-1 lg:row-start-2 lg:mx-auto lg:grid lg:w-full lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8">
+                  <div className="lg:pr-4">
+                    <div className="max-w-xl text-base/7 text-gray-400 lg:max-w-lg">
+                      <p>
+                        The Cape Town rental market moves incredibly fast, and a lack of transparency costs everyone money. Whether you are a landlord trying to avoid an empty month, an agent justifying a mandate, or a tenant trying not to overpay, relying on gut feeling or outdated averages is a risk. Volora levels the playing field with objective data.
+                        By analyzing thousands of active local listings every single day, Volora equips you with the exact, unbiased data needed to value a property accurately, negotiate fairly, and move with confidence.
+                      </p>
+                      <ul role="list" className="mt-8 space-y-8 text-gray-400">
+                        <li className="flex gap-x-3">
+                          <RiUploadFill aria-hidden="true" className="mt-1 size-5 flex-none text-indigo-400" />
+                          <span>
+                            <strong className="font-semibold text-white">Instant, Objective Valuations.</strong>  Generate comprehensive rental estimates in seconds. Our engine cross-references property features against live market data, providing a precise valuation and a realistic pricing bracket so you know exactly what a property is actually worth today.
+                          </span>
+                        </li>
+                        <li className="flex gap-x-3">
+                          <RiLockPasswordFill aria-hidden="true" className="mt-1 size-5 flex-none text-indigo-400" />
+                          <span>
+                            <strong className="font-semibold text-white">Live Market Intelligence.</strong> Stay ahead of shifting neighborhood trends. Volora actively tracks suburb yields, pricing distributions, and amenity premiums across the city, ensuring your decisions are based on current market realities rather than last quarter's averages.
+                          </span>
+                        </li>
+                        <li className="flex gap-x-3">
+                          <RiServerFill aria-hidden="true" className="mt-1 size-5 flex-none text-indigo-400" />
+                          <span>
+                            <strong className="font-semibold text-white">Spot Deals.</strong> Whether you are hunting for an underpriced rental or proving a property's premium worth to a prospective client, the Volora Deal Score flags market anomalies instantly. See exactly how any listing compares to its neighborhood baseline.
+                          </span>
+                        </li>
+                      </ul>
+                      <h2 className="mt-16 text-2xl font-bold tracking-tight text-white">The new standard for Cape Town real estate.</h2>
+                      <p className="mt-6">
+                        The property market rewards those with the best data. Whether you are an agent pricing a luxury apartment in Sea Point, an investor calculating gross yield, or a renter looking for a fairly priced home, our platform gives you the structural intelligence you need. Step away from manual spreadsheets and endless scrolling, and start making decisions backed by the daily truth of the market.
+
+                        <button onClick={() => setActiveTab('valuation')} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-xl w-fit flex items-center gap-2 transition-all">
+                          Launch Engine <RiArrowRightLine className="size-2.5" />
+                        </button>
+
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          </>
+        )}
+
+        {/* VIEW 2: PREDICTIVE VALUATION ENGINE */}
+        {activeTab === 'valuation' && (
+          <div className="space-y-6">
+            <div>
+              <KineticText text="Valora Rental Engine" highlightFirst={true} className="text-2xl md:text-8xl tracking-tighter text-amber" />
+              <p className="text-slate-400 mt-1">Input baseline real estate specifications to cross-reference with model parameters.</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              <div className="lg:col-span-2 bg-slate-900/40 backdrop-blur-md border border-slate-800/60 rounded-xl p-8 shadow-md">
+                <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4">
+                    <div>
+                      <h3 className="font-medium text-white">Target location</h3>
+                      <p className="text-xs text-slate-400">Select Location</p>
+                    </div>
+                    <AutoComplete className="w-64" options={locations} value={suburb} onChange={setSuburb} placeholder="Type a location..." filterOption={(inputValue, option) => option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1} />
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4">
+                    <h3 className="text-lg font-medium text-white">Bedrooms</h3>
+                    <InputNumber min={0.5} max={12} value={bedrooms} onChange={(v) => setBedrooms(v || 0.5)} className="w-32" />
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4">
+                    <h3 className="text-lg font-medium text-white">Bathrooms</h3>
+                    <InputNumber min={0.5} max={10} value={bathrooms} onChange={(v) => setBathrooms(v || 0.5)} className="w-32" />
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4">
+                    <h3 className="text-lg font-medium text-white">Erf Size (m²)</h3>
+                    <InputNumber min={floor} max={18000} value={erf_size} onChange={(v) => setErfSize(v || 12)} className="w-32" />
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4">
+                    <h3 className="text-lg font-medium text-white">Floor Size (m²)</h3>
+                    <InputNumber min={12} max={18000} value={floor} onChange={(v) => setFloor(v || 12)} className="w-32" />
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4">
+                    <h3 className="text-lg font-medium text-white">Garages</h3>
+                    <InputNumber min={0} max={14} value={gar} onChange={(v) => setGar(v || 0)} className="w-32" />
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4">
+                    <h3 className="font-medium text-white">Property Type</h3>
+                    <Select showSearch value={propType} onChange={setPropType} className="w-64" options={[{ value: 'house', label: 'House' }, { value: 'Apartment', label: 'Apartment' }, { value: 'townhouse', label: 'Townhouse' }]} />
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4">
+                    <h3 className="font-medium text-white">Lease Term</h3>
+                    <Select showSearch value={lease_term} onChange={setLeaseTerm} className="w-64" options={[{ value: 'Short Term', label: 'Short Term' }, { value: 'Long Term', label: 'Long Term' }]} />
+                  </div>
+
+                  <div className="flex items-start justify-between border-b border-slate-700/50 pb-4 mb-4 mt-4">
+                    <div className="mt-1">
+                      <h3 className="font-medium text-white">Amenities</h3>
+                      <p className="text-xs text-slate-400">Select all included features</p>
+                    </div>
+                    <div className="w-2/3">
+                      <Checkbox.Group style={{ width: '100%' }} value={amenities} onChange={(v) => setAmenities(v as string[])}>
+                        <Row>
+                          {amenityOptions.map((option) => (
+                            <Col span={8} key={option.value} className="mb-3">
+                              <Checkbox value={option.value}><span className="text-slate-300 text-sm">{option.label}</span></Checkbox>
+                            </Col>
+                          ))}
+                        </Row>
+                      </Checkbox.Group>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 mb-4 mt-4">
+                    <div className="mt-1">
+                      <h3 className="font-medium text-white">Listed Rental Rate</h3>
+                      <p className="text-xs text-slate-400">Per month</p>
+                    </div>
+                    <div className="w-2/3">
+                      <InputNumber<number> min={3500} max={100000} step={500} value={askingPrice} onChange={(v) => setAskingPrice(v || 3500)} formatter={(v) => `R ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => v ? Number(v.replace(/R\s?|(,*)/g, '')) : 0} className="w-full" />
+                    </div>
+                  </div>
+
+                  <div className="mt-8">
+                    <Button type="primary" size="large" loading={isLoading} onClick={handleCalculate} className="w-full bg-indigo-600 hover:bg-indigo-500 border-none h-12 text-md font-semibold">
+                      Run Predictive Valuation
+                    </Button>
+                  </div>
+                </ConfigProvider>
+              </div>
+
+              <div className="lg:col-span-1">
+                {predictionResult ? (
+                  <div className="sticky top-28 flex flex-col gap-6">
+                    <dl className="grid grid-cols-2 gap-4">
+                      {statsData.map((item) => (
+                        <Card key={item.name} className="flex flex-col justify-center h-full bg-slate-900/40 backdrop-blur-md border-slate-800/60 p-4">
+                          <dt className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">{item.name}</dt>
+                          <dd className="text-lg font-bold text-white mb-2">{item.stat}</dd>
+                          {item.status && (
+                            <dd className={cx(
+                              item.status === 'within'
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                : item.status === 'observe'
+                                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                                : 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+                              'inline-flex items-center gap-x-1.5 rounded border px-2 py-1 text-[10px] font-bold tracking-wider'
+                            )}>
+                              {item.status === 'within' ? <RiCheckLine className="size-1" /> : item.status === 'observe' ? <RiEyeLine className="size-3" /> : <RiErrorWarningLine className="size-3" />}
+                              {item.range}
+                            </dd>
+                          )}
+                        </Card>
+                      ))}
+                    </dl>
+
+                    <Card className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60 rounded-xl p-6 shadow-md mt-6">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-100 uppercase tracking-wider">Volora Deal Score</h3>
+                        <p className="mt-1 text-xs text-slate-400">Aggregated deal rating based on financial arbitrage, safety score and civic score.</p>
+                      </div>
+                      <div className="mt-6 flex items-center justify-between">
+                        <p className="text-sm font-medium text-slate-300">Deal Score</p>
+                        <div className="flex items-center gap-4">
+                          <p className="text-2xl font-bold text-white">{predictionResult.deal_score ?? '0'} <span className="text-sm font-normal text-slate-500">/100</span></p>
+                          <div className="relative flex items-center justify-center w-12 h-12">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                              <circle cx="18" cy="18" r="15.9155" fill="none" className="stroke-slate-700/50" strokeWidth="3" />
+                              <circle cx="18" cy="18" r="15.9155" fill="none" className={(predictionResult.deal_score ?? 0) >= 75 ? 'stroke-emerald-500' : (predictionResult.deal_score ?? 0) > 35 ? 'stroke-amber-500' : 'stroke-rose-500'} strokeWidth="3" strokeDasharray="100, 100" strokeDashoffset={100 - (predictionResult.deal_score ?? 0)} strokeLinecap="round" />
+                            </svg>
+                            <div className="absolute flex items-center justify-center text-[10px] font-bold text-slate-300">{predictionResult.deal_score ?? '0'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60 rounded-xl p-6 shadow-md mt-6 overflow-hidden relative">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-100 uppercase tracking-wider">Market Pulse</h3>
+                        <p className="mt-1 text-xs text-slate-400">Current deal distribution in {suburb || 'this area'}.</p>
+                      </div>
+                      <div className="mt-6 relative">
+                        <div className="flex w-full h-2.5 rounded-full overflow-hidden bg-slate-700/50">
+                          <div style={{ width: `${predictionResult.market_pulse?.[0] ?? 15}%` }} className="bg-emerald-500 transition-all" />
+                          <div style={{ width: `${predictionResult.market_pulse?.[1] ?? 55}%` }} className="bg-amber-500 transition-all" />
+                          <div style={{ width: `${predictionResult.market_pulse?.[2] ?? 30}%` }} className="bg-rose-500 transition-all" />
+                        </div>
+                        <div className="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-white rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)] border-2 border-slate-800 transition-all z-10" style={{ left: `calc(${predictionResult ? Math.max(0, Math.min(100, 100 - (predictionResult.deal_score ?? 50))) : 50}% - 3px)` }} />
+                      </div>
+                      <div className="mt-6 flex justify-between items-center border-t border-slate-700/50 pt-4">
+                        <span className="flex items-center gap-1.5 text-[10px] text-slate-400"><span className="h-2 w-2 rounded-full bg-emerald-500" />{predictionResult.market_pulse?.[0] ?? 15}% BARGAINS</span>
+                        <span className="flex items-center gap-1.5 text-[10px] text-slate-400"><span className="h-2 w-2 rounded-full bg-amber-500" />{predictionResult.market_pulse?.[1] ?? 55}% GOOD-FAIR</span>
+                        <span className="flex items-center gap-1.5 text-[10px] text-slate-400"><span className="h-2 w-2 rounded-full bg-rose-500" />{predictionResult.market_pulse?.[2] ?? 30}% STEEP</span>
+                      </div>
+                    </Card>
+                  </div>
+                ) : (
+                  <div className="sticky top-28 h-64 border-2 border-dashed border-slate-700/50 rounded-xl flex flex-col items-center justify-center text-slate-500 bg-slate-900/20 p-8 text-center">
+                    <p className="text-sm">Run valuation to see results.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 3: SUBURB BENCHMARKS MAP */}
+        {activeTab === 'benchmarks' && (
+          <div className="flex flex-col space-y-6 h-full">
+            <div>
+              <KineticText text="Valora Benchmarks" highlightFirst={true} className="text-2xl md:text-8xl tracking-tighter text-amber" />
+              <p className="text-slate-400">Live structural data tracked by your daily scraper pipeline.</p>
+            </div>
+
+            <div ref={mapContainerRef} className="w-full h-[500px] rounded-xl overflow-hidden border border-slate-700 shadow-xl relative" />
+
+            {selectedSuburb && (
+              <div className="w-full mt-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
+                <div className="text-center mb-8 relative">
+                  <h3 className="text-3xl font-bold text-white tracking-tight">Market Analysis: {selectedSuburb}</h3>
+                  <p className="text-slate-400 mt-2">Live structural data and active arbitrage opportunities.</p>
+                  <button onClick={() => setSelectedSuburb(null)} className="absolute right-0 top-0 text-[10px] font-bold tracking-widest text-slate-500 hover:text-slate-300 transition-colors bg-slate-900/50 px-4 py-2 rounded-full border border-slate-800 shadow-sm">
+                    CLOSE
+                  </button>
+                </div>
+
+                {isFetchingStats ? (
+                  <div className="w-full flex flex-col items-center justify-center py-16 bg-slate-900/20 backdrop-blur-sm border border-slate-800/50 rounded-2xl shadow-inner">
+                    <span className="animate-pulse tracking-widest text-xs font-mono text-emerald-400">ANALYZING SUBURB DATA...</span>
+                  </div>
+                ) : backendStats && backendStats.sub_count > 0 ? (
+                  <div className="w-full bg-slate-900/30 backdrop-blur-md rounded-2xl border border-slate-800/60 overflow-hidden shadow-2xl">
+                    <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-800/60">
+                      <div className="p-8 text-center flex flex-col items-center justify-center hover:bg-slate-800/20 transition-colors">
+                        <p className="text-4xl font-bold text-white mb-2">{backendStats.sub_count}</p>
+                        <p className="text-sm text-slate-400 font-medium">Active DB Listings</p>
+                      </div>
+                      <div className="p-8 text-center flex flex-col items-center justify-center hover:bg-slate-800/20 transition-colors">
+                        <p className="text-4xl font-bold text-white mb-2">R{backendStats.sub_rent?.toLocaleString('en-ZA')}</p>
+                        <p className="text-sm text-slate-400 font-medium">Avg Market Rent</p>
+                      </div>
+                      <div className="p-8 text-center flex flex-col items-center justify-center hover:bg-slate-800/20 transition-colors">
+                        <p className="text-4xl font-bold text-white mb-2">{backendStats.sub_arb}</p>
+                        <p className="text-sm text-slate-400 font-medium">Arbitrage Deals</p>
+                      </div>
+                      <div className="p-8 text-center flex flex-col items-center justify-center hover:bg-slate-800/20 transition-colors">
+                        <p className="text-4xl font-bold text-amber-400 mb-2">{backendStats.sub_score}</p>
+                        <p className="text-sm text-slate-400 font-medium">Avg Deal Score</p>
+                      </div>
+                    </div>
+
+                    <div className="w-full p-4">
+                      <Tabs defaultValue="tab1">
+                        <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 p-1 rounded-lg">
+                          <TabsTrigger value="tab1">1 Bedroom</TabsTrigger>
+                          <TabsTrigger value="tab2">2 Bedroom</TabsTrigger>
+                          <TabsTrigger value="tab3">3 Bedroom</TabsTrigger>
+                        </TabsList>
+
+                        <div className="mt-4 p-6 bg-slate-900/30 rounded-xl border border-slate-800/50">
+                          <TabsContent value="tab1">
+                            <div className="flex flex-col gap-3">
+                              {sparklineData.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-800/40 hover:bg-slate-800/60 transition-colors rounded-xl border border-slate-700/50 shadow-sm">
+                                  <div className="w-1/3">
+                                    <h4 className="font-semibold text-slate-100">{item.title}</h4>
+                                    <p className="text-sm text-slate-400 mt-0.5">{item.subtitle}</p>
+                                  </div>
+                                  <div className="w-1/3 flex justify-center">
+                                    <div className="flex items-end gap-1.5 h-8">
+                                      {item.bars.map((height, i) => (
+                                        <div key={i} className="w-2.5 bg-slate-500 rounded-sm hover:bg-slate-400 transition-colors" style={{ height: `${height}%` }} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="w-1/3 text-right font-bold text-slate-100">{item.value}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="tab2">
+                            <div className="flex flex-col gap-3">
+                              {sparklineData2.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-800/40 hover:bg-slate-800/60 transition-colors rounded-xl border border-slate-700/50 shadow-sm">
+                                  <div className="w-1/3">
+                                    <h4 className="font-semibold text-slate-100">{item.title}</h4>
+                                    <p className="text-sm text-slate-400 mt-0.5">{item.subtitle}</p>
+                                  </div>
+                                  <div className="w-1/3 flex justify-center">
+                                    <div className="flex items-end gap-1.5 h-8">
+                                      {item.bars.map((height, i) => (
+                                        <div key={i} className="w-2.5 bg-slate-500 rounded-sm hover:bg-slate-400 transition-colors" style={{ height: `${height}%` }} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="w-1/3 text-right font-bold text-slate-100">{item.value}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="tab3">
+                            <div className="flex flex-col gap-3">
+                              {sparklineData3.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-800/40 hover:bg-slate-800/60 transition-colors rounded-xl border border-slate-700/50 shadow-sm">
+                                  <div className="w-1/3">
+                                    <h4 className="font-semibold text-slate-100">{item.title}</h4>
+                                    <p className="text-sm text-slate-400 mt-0.5">{item.subtitle}</p>
+                                  </div>
+                                  <div className="w-1/3 flex justify-center">
+                                    <div className="flex items-end gap-1.5 h-8">
+                                      {item.bars.map((height, i) => (
+                                        <div key={i} className="w-2.5 bg-slate-500 rounded-sm hover:bg-slate-400 transition-colors" style={{ height: `${height}%` }} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="w-1/3 text-right font-bold text-slate-100">{item.value}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </TabsContent>
+                        </div>
+                      </Tabs>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full flex flex-col items-center justify-center py-16 bg-slate-900/20 backdrop-blur-sm border border-slate-800/50 rounded-2xl shadow-inner">
+                    <div className="p-4 bg-slate-800/50 rounded-full mb-4 border border-slate-700/50">
+                      <RiErrorWarningLine className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <p className="text-slate-200 font-bold text-lg tracking-tight">No Market Data</p>
+                    <p className="text-sm text-slate-500 mt-1 max-w-sm text-center">We haven't detected any active structural comps or arbitrage listings in {selectedSuburb} today.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

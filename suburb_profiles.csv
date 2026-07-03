@@ -1,0 +1,402 @@
+location,macro_suburb,property_percentile,taxi_routes,civic_responsiveness_percentile,healthcare_facilities_5km,median_gv,region,safety_score,school_count,risk_profile
+Aan De Wijnlanden Estate,Kuils River,62.5,5,3,4,1750000,Northern Suburb,14,0,Higher reported crime
+Acorn Creek Lifestyle Estate,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Admirals Kloof,unknown,69.7,0,46,0,1878183.962,S penisula,50,0,Moderate reported crime
+Admirals Park,Somerset Central,37,3,48,4,9.00E+05,helderberg,98,0,Lower reported crime
+Amanda Glen,Bellville,78.5,1,48,8,2750000,Northern Suburb,61,0,Moderate reported crime
+Amandelsig,Kuils River,55.1,0,15,5,1250000,Northern Suburb,29,1,Higher reported crime
+Anchorage Park,Gordon's Bay,43.6,0,49,4,1250000,helderberg,98,0,Lower reported crime
+Athlone,Athlone,38,34,49,27,1250000,cape flats,31,7,Higher reported crime
+Atlantic Beach Golf Estate,Melkbosstrand,81.9,0,75,0,2750000,Blaauwbergstrand,50,0,Moderate reported crime
+Atlantic Hills,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Atlantis Central,Atlantis,12.7,0,88,0,3.00E+05,Blaauwbergstrand,50,0,Moderate reported crime
+Atlantis Industrial,Atlantis,12.7,0,88,0,3.00E+05,Blaauwbergstrand,50,0,Moderate reported crime
+Audas Estate,unknown,67.5,16,50,6,1750000,helderberg,75,2,Lower reported crime
+Aurora,Durbanville,85.4,0,50,2,2750000,Northern Suburb,61,0,Moderate reported crime
+Avalon Estate,Kraaifontein,68.7,0,50,5,2250000,Northern Suburb,61,0,Moderate reported crime
+Avondale Parow,Parow,64.5,0,58,0,1797222.222,Northern Suburb,50,0,Moderate reported crime
+Bakkershoogte,Briza ,93.8,0,72,0,4134615.385,helderberg,50,0,Moderate reported crime
+Bakoven,Atlantic Seaboard,95.5,0,87,0,4778481.013,Atlantic,50,0,Moderate reported crime
+Bantry Bay,Atlantic Seaboard,99.8,8,50,5,6500000,Atlantic,91,0,Lower reported crime
+Bardale Village,Kuils River,59.2,0,42,0,1396212.121,Northern Suburb,50,0,Moderate reported crime
+Baronetcy Estate,unknown,97.6,0,50,5,3750000,Northern Suburb,42,0,Moderate reported crime
+Bay View,Mitchells Plain,27.6,0,83,0,7.00E+05,cape flats,50,0,Moderate reported crime
+Bay View Village,unknown,69.7,0,46,0,1878183.962,S penisula,50,0,Moderate reported crime
+Beachfront,Bloubergstrand,93.2,0,55,0,2942307.692,Blaauwbergstrand,50,0,Moderate reported crime
+Bel'Aire,Briza ,95.5,0,15,2,5500000,helderberg,75,0,Lower reported crime
+Belgravia,Athlone,44.2,8,51,26,1250000,cape flats,31,7,Higher reported crime
+Belhar,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Bellair,unknown,62.5,3,16,9,1750000,Northern Suburb,43,0,Moderate reported crime
+Belle Constantia,unknown,69.7,0,46,0,1878183.962,Southern suburbs,50,0,Moderate reported crime
+Bellville CBD,Bellville,46.7,115,17,14,3.00E+05,Northern Suburb,43,1,Moderate reported crime
+Bellvue,Fish Hoek,67.3,0,64,0,1775000,S penisula,50,0,Moderate reported crime
+Belmont Park,Kraaifontein,34.7,36,53,8,9.00E+05,Northern Suburb,19,2,Higher reported crime
+Belthorn Estate,unknown,54.7,11,53,24,1750000,cape flats,34,2,Moderate reported crime
+Belvedere,Fish Hoek,67.3,0,64,0,1775000,S penisula,50,0,Moderate reported crime
+Bergsig,Kuils River,59.2,0,42,0,1396212.121,Northern Suburb,50,0,Moderate reported crime
+Bergvliet,unknown,86.8,2,54,12,3750000,Southern suburbs,24,6,Higher reported crime
+Big Bay,unknown,91.8,66,54,1,2250000,Blaauwbergstrand,26,0,Higher reported crime
+Bishop Lavis,unknown,12,9,17,20,3.00E+05,Northern Suburb,31,10,Higher reported crime
+Bishopscourt,Constantia,98.9,1,54,9,12500000,Southern suburbs,77,0,Lower reported crime
+Bizweni,unknown,71,2,17,6,2250000,helderberg,75,1,Lower reported crime
+Blaauwbergstrand,Bloubergstrand,93.2,66,55,1,3250000,Blaauwbergstrand,26,0,Higher reported crime
+Blommendal,Bellville,64.3,0,17,11,2250000,Northern Suburb,43,0,Moderate reported crime
+Blomtuin,Bellville,54.9,4,55,10,1250000,Northern Suburb,43,0,Moderate reported crime
+Blouberg Rise,Bloubergstrand,70.1,62,3,2,2250000,Blaauwbergstrand,26,4,Higher reported crime
+Blouberg Sands,Bloubergstrand,72.4,51,55,2,1250000,Blaauwbergstrand,26,0,Higher reported crime
+Bloubergrant,unknown,86.8,64,7,2,2750000,Blaauwbergstrand,26,0,Higher reported crime
+Bluewater Estate,Kommetjie,85.1,0,71,0,2750000,S penisula,50,0,Moderate reported crime
+Bo Oakdale,Bellville,49.8,12,17,9,1250000,Northern Suburb,43,0,Moderate reported crime
+Bongweni,Khayelitsha,9.9,0,10,0,3.00E+05,cape flats,50,0,Moderate reported crime
+Bonnie Brae,Kraaifontein,38.6,0,55,9,1250000,Northern Suburb,19,0,Higher reported crime
+Bosbell,unknown,59.8,21,56,10,1750000,Northern Suburb,43,0,Moderate reported crime
+Boskloof Eco Estate,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Bosonia,unknown,57.7,30,18,6,7.00E+05,Northern Suburb,29,1,Higher reported crime
+Boston,Bellville,56.8,4,18,11,1750000,Northern Suburb,43,3,Moderate reported crime
+Bothasig,Parow,55.2,17,18,7,1750000,Northern Suburb,88,5,Lower reported crime
+Bracken Heights,Brackenfell,58.1,0,56,8,1250000,Northern Suburb,87,0,Lower reported crime
+Brackenfell Central,Brackenfell,55.6,34,18,9,1469767.442,Northern Suburb,87,1,Lower reported crime
+Brackenfell South,Brackenfell,52,12,56,7,1250000,Northern Suburb,87,1,Lower reported crime
+Braeview,unknown,87.1,9,56,3,3250000,helderberg,75,0,Lower reported crime
+Bridgetown,Athlone,21.9,37,18,25,7.00E+05,cape flats,31,7,Higher reported crime
+Bridgewater,unknown,62.5,27,48,7,1250000,helderberg,75,0,Lower reported crime
+Briza,Briza ,80.4,8,57,3,2250000,helderberg,75,1,Lower reported crime
+Brooklyn,Milnerton,34.1,154,57,18,7.00E+05,Blaauwbergstrand,20,3,Higher reported crime
+Buh-Rein Estate,Kraaifontein,47,0,57,7,9.00E+05,Northern Suburb,19,0,Higher reported crime
+Burgundy,unknown,67.3,0,57,8,1750000,Northern Suburb,87,1,Lower reported crime
+Burgundy Estate,Parow,64.5,2,58,5,1250000,Northern Suburb,42,2,Moderate reported crime
+Camps Bay,Atlantic Seaboard,99.2,10,58,3,12500000,Atlantic,46,3,Moderate reported crime
+Cape Town City Centre,Cape Town City Centre,96.8,202,58,9,1750000,Cape Town City Centre,31,5,Higher reported crime
+Capri,Kommetjie,85.1,0,71,0,2750000,S penisula,50,0,Moderate reported crime
+Century City,Century City,85.9,27,59,10,2750000,Blaauwbergstrand,7,2,Higher reported crime
+Chantecler,unknown,78.1,2,19,7,2750000,Northern Suburb,61,0,Moderate reported crime
+Churchill Estate,Parow,49,4,59,16,1250000,Northern Suburb,42,2,Moderate reported crime
+Clara Anna Fontein,Durbanville,97.1,0,20,2,3250000,Northern Suburb,61,0,Moderate reported crime
+Claremont,Claremont & Kenilworth,84.8,47,59,18,2250000,Southern suburbs,77,14,Lower reported crime
+Claremont Village,unknown,69.7,0,46,0,1878183.962,Southern suburbs,50,0,Moderate reported crime
+Clifton,Atlantic Seaboard,100,8,59,3,12500000,Atlantic,46,0,Moderate reported crime
+Clovelly,Fish Hoek,85,0,59,4,2750000,S penisula,97,0,Lower reported crime
+Colorado Park,Mitchells Plain,30.3,18,59,16,7.00E+05,cape flats,46,1,Moderate reported crime
+Constantia,Constantia,96.7,7,20,5,6500000,Southern suburbs,77,4,Lower reported crime
+Cravenby,unknown,32.3,38,20,20,9.00E+05,Northern Suburb,50,1,Moderate reported crime
+Crawford,Athlone,58.7,2,59,26,1750000,cape flats,34,1,Moderate reported crime
+Croydon Vineyard Estate,Country/Eco Estates,90.1,4,21,5,3750000,helderberg,88,0,Lower reported crime
+D'Urbanvale,Durbanville,66.7,1,23,2,2250000,Northern Suburb,61,1,Moderate reported crime
+De Bron,Bellville,70,2,21,4,1610240.964,Northern Suburb,61,0,Moderate reported crime
+De Kuilen,unknown,44.2,39,21,7,1250000,Northern Suburb,29,1,Higher reported crime
+De Oude Spruit,Brackenfell,65,1,21,8,1750000,Northern Suburb,87,0,Lower reported crime
+De Tijger,Parow,74.2,8,21,14,2750000,Northern Suburb,42,2,Moderate reported crime
+De Velde,unknown,69.7,11,60,6,1878183.962,helderberg,75,0,Lower reported crime
+De Werf,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+De Wijnlanden Residential Estate,Kuils River,59.2,0,42,0,1396212.121,Northern Suburb,50,0,Moderate reported crime
+De Zicht Estate,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Dennegeur,Mountainside & Dennegeur,91.7,13,23,8,3750000,helderberg,75,0,Lower reported crime
+Dennendal,unknown,69.7,0,46,0,1878183.962,Southern suburbs,50,0,Moderate reported crime
+Dido Valley,unknown,69.7,0,46,0,1878183.962,S penisula,50,0,Moderate reported crime
+Die Bos,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Die Wingerd,unknown,75.9,9,60,3,2250000,helderberg,75,0,Lower reported crime
+Diep River,Plumstead,67.8,5,23,11,1250000,Southern suburbs,77,4,Lower reported crime
+Door De Kraal,Bellville,81,2,61,8,2750000,Northern Suburb,43,0,Moderate reported crime
+Dornhill,Somerset Central,67.7,0,48,0,1979661.017,helderberg,50,0,Moderate reported crime
+Durbanville,Durbanville,78.9,28,61,3,1750000,Northern Suburb,61,7,Moderate reported crime
+Durbanville Hills,Durbanville,85.7,11,61,2,3750000,Northern Suburb,61,0,Moderate reported crime
+Durbanville Rural,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Duynefontein,Melkbosstrand,81.9,0,75,0,2750000,Blaauwbergstrand,50,0,Moderate reported crime
+Edenpark,Brackenfell,55.6,2,24,7,1250000,Northern Suburb,87,0,Lower reported crime
+Edgemead,Parow,66.7,10,62,6,2250000,Northern Suburb,88,3,Lower reported crime
+Eensgevonden,unknown,71,0,62,4,1750000,Northern Suburb,29,0,Higher reported crime
+Erica Township,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Erinvale Estate,Erinvale & Other Estates,97.7,3,63,3,6500000,helderberg,75,0,Lower reported crime
+Eversdal,Durbanville,84.1,2,25,5,3250000,Northern Suburb,61,2,Moderate reported crime
+Faerie Knowe,unknown,69.7,0,46,0,1878183.962,S penisula,50,0,Moderate reported crime
+Fairfield Estate,unknown,49,4,63,17,1250000,Northern Suburb,42,2,Moderate reported crime
+Fairhaven Country Estate,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Fairview Golf Estate,unknown,46.6,0,63,6,5.00E+05,helderberg,98,0,Lower reported crime
+Ferndale,Brackenfell,54,21,63,9,7.00E+05,Northern Suburb,87,0,Lower reported crime
+Ferness Estate,Ottery/Cape Flats,41.3,0,38,0,937500,Southern suburbs,50,0,Moderate reported crime
+Fernwood,Somerset Central,63.6,13,64,8,1750000,helderberg,75,1,Lower reported crime
+Firgrove,unknown,22.3,41,25,1,7.00E+05,helderberg,88,1,Lower reported crime
+Firlands,unknown,87.5,0,4,4,2750000,helderberg,98,1,Lower reported crime
+Fish Hoek,Fish Hoek,67.3,20,64,3,1750000,S penisula,97,6,Lower reported crime
+Flamingo Vlei,unknown,75.6,1,25,5,2250000,Blaauwbergstrand,26,1,Higher reported crime
+Forest Glade,Kuils River,59.2,0,42,0,1396212.121,Northern Suburb,50,0,Moderate reported crime
+Fountain Village,unknown,10.3,24,25,12,3.00E+05,Northern Suburb,9,0,Higher reported crime
+Fresnaye,Cape Town City Centre,99.1,2,64,6,12500000,Atlantic,91,0,Lower reported crime
+Froggy Farm,Simons Town,89,0,88,0,2609375,S penisula,50,0,Moderate reported crime
+Gardens,Cape Town City Centre,96.4,10,65,8,2250000,Cape Town City Centre,31,7,Higher reported crime
+Gatesville,Athlone,58.7,34,26,23,1750000,cape flats,31,1,Higher reported crime
+Gleemoor,Athlone,55.6,0,59,0,1543181.818,cape flats,50,0,Moderate reported crime
+Glen Marine,unknown,69.7,0,46,0,1878183.962,S penisula,50,0,Moderate reported crime
+Glencairn,Simons Town,71.5,1,26,4,2250000,S penisula,99,0,Lower reported crime
+Glenhaven,unknown,44.2,0,26,12,1250000,Northern Suburb,28,1,Higher reported crime
+Glenlily,unknown,48.4,21,65,17,1250000,Northern Suburb,42,1,Moderate reported crime
+Goedehoop,Somerset Central,71.9,9,65,7,2250000,helderberg,78,0,Lower reported crime
+Goedemoed,Durbanville,70.3,0,65,5,2250000,Northern Suburb,61,0,Moderate reported crime
+Golden Acre,Somerset Central,86.8,5,65,5,3250000,helderberg,75,0,Lower reported crime
+Golf Course,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Goodwood Estate,Parow,50.7,1,66,15,1750000,Northern Suburb,24,2,Higher reported crime
+Goodwood Ext 1,Parow,63.6,18,66,12,1750000,Northern Suburb,24,1,Higher reported crime
+Goodwood Park,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Gordons Bay,Gordon's Bay,46.2,9,66,4,7.00E+05,helderberg,98,2,Lower reported crime
+Gordons Bay Village,Gordon's Bay,81.7,3,27,2,2250000,helderberg,98,0,Lower reported crime
+Graanendal,unknown,82.1,5,66,4,2250000,Northern Suburb,61,0,Moderate reported crime
+Grassy Park,Ottery/Cape Flats,41.3,28,66,9,9.00E+05,Southern suburbs,33,7,Higher reported crime
+Green Point,Atlantic Seaboard,97.3,32,66,6,3250000,Atlantic,91,1,Lower reported crime
+Greenways,Strand,91.2,16,67,6,1750000,helderberg,78,0,Lower reported crime
+Groenvallei,unknown,35.2,18,27,9,7.00E+05,Northern Suburb,43,0,Moderate reported crime
+Guldenland,Somerset Central,67.7,0,48,0,1979661.017,helderberg,50,0,Moderate reported crime
+Haasendal,Kuils River,66.3,0,27,3,2250000,Northern Suburb,87,0,Lower reported crime
+Hagley,Kuils River,35.6,6,28,9,9.00E+05,Northern Suburb,9,0,Higher reported crime
+Harbour Island,Gordon's Bay,46.2,0,66,0,1300000,helderberg,50,0,Moderate reported crime
+Harfield Village,Claremont & Kenilworth,84.8,0,59,0,2095238.095,Southern suburbs,50,0,Moderate reported crime
+Heartland Beach Road Precinct,unknown,69.7,8,67,5,1878183.962,helderberg,75,0,Lower reported crime
+Heather Park,Kuils River,59.2,0,42,0,1396212.121,Northern Suburb,50,0,Moderate reported crime
+Heathfield,unknown,51.4,4,28,12,1250000,Southern suburbs,83,3,Lower reported crime
+Helderberg Estate,Somerset Central,90.1,3,67,3,3750000,helderberg,75,0,Lower reported crime
+Helderrand,Somerset Central,67.7,0,48,0,1979661.017,helderberg,50,0,Moderate reported crime
+Heldervue,Somerset Central,78.5,3,68,3,2750000,helderberg,75,0,Lower reported crime
+Helena Heights,Somerset Central,90.1,10,68,3,2750000,helderberg,75,0,Lower reported crime
+Heritage Park,unknown,69.7,0,68,8,1750000,helderberg,75,1,Lower reported crime
+High Constantia,unknown,69.7,0,46,0,1878183.962,Southern suburbs,50,0,Moderate reported crime
+High Riding,Somerset Central,92.8,0,4,3,3250000,helderberg,75,0,Lower reported crime
+Highbury Park,Kuils River,29.7,10,69,7,7.00E+05,Northern Suburb,29,0,Higher reported crime
+Hoheizen,Bellville,74.8,8,29,11,2250000,Northern Suburb,43,0,Moderate reported crime
+Hyde Park,unknown,69.7,0,46,0,1878183.962,cape flats,50,0,Moderate reported crime
+Illaire,Somerset Central,76.8,8,29,2,2250000,helderberg,75,0,Lower reported crime
+Imhoffs Gift,Kommetjie,85.1,0,71,0,2750000,S penisula,50,0,Moderate reported crime
+Jacarandas,Kuils River,53,0,69,3,1750000,Northern Suburb,29,0,Higher reported crime
+Joostenbergvlakte Smallholdings,unknown,74.2,2,3,6,2750000,Northern Suburb,19,0,Higher reported crime
+Kaapzicht,unknown,71.8,10,70,11,2250000,Northern Suburb,42,0,Moderate reported crime
+Kelderhof,Country/Eco Estates,75.9,1,10,3,2750000,helderberg,88,0,Lower reported crime
+Kempenville,Bellville,48.3,37,30,13,9.00E+05,Northern Suburb,43,1,Moderate reported crime
+Kenever,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Kenilworth,Claremont & Kenilworth,80.1,12,70,17,1750000,Southern suburbs,57,4,Moderate reported crime
+Kenridge,Durbanville,79.8,0,70,5,2750000,Northern Suburb,61,1,Moderate reported crime
+Kensington,Other,37.8,8,70,14,9.00E+05,Northern Suburb,72,5,Lower reported crime
+Kenwyn,Wynberg,54,0,98,0,1250000,Southern suburbs,50,0,Moderate reported crime
+Khaya,Khayelitsha,9.9,4,10,19,3.00E+05,cape flats,50,5,No data
+Kirstenhof,Tokai & Steenberg,77.6,3,31,7,2250000,Southern suburbs,24,1,Higher reported crime
+Klein Nederburg,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Kleinbosch,Parow,76.9,2,71,3,2750000,Northern Suburb,88,0,Lower reported crime
+Kleinbron,unknown,66.3,0,71,9,2250000,Northern Suburb,87,0,Lower reported crime
+Klipdam,Kuils River,59.2,16,31,6,7.00E+05,Northern Suburb,29,1,Higher reported crime
+Klipheuwel Housing Scheme,unknown,2.1,2,10,0,1.00E+05,Northern Suburb,12,0,Higher reported crime
+Klipkop,unknown,44.9,38,71,19,1250000,Northern Suburb,42,1,Moderate reported crime
+Kommetjie,Kommetjie,85.1,3,71,2,2750000,S penisula,57,3,Moderate reported crime
+Kraaifontein East,Kraaifontein,47,23,2,7,1215454.545,Northern Suburb,19,2,Higher reported crime
+Kuilsrivier South Smallholdings,Kuils River,12.3,3,72,9,5.00E+05,Northern Suburb,29,1,Higher reported crime
+Kuyasa,unknown,2.1,2,11,10,1.00E+05,cape flats,3,4,Higher reported crime
+La Concorde,Briza ,93.8,3,72,3,4250000,helderberg,75,0,Lower reported crime
+La Montagne,unknown,82.7,4,72,1,3250000,helderberg,75,0,Lower reported crime
+La Sandra,Briza ,92.1,1,72,3,3750000,helderberg,75,0,Lower reported crime
+Labiance,unknown,53.4,31,31,12,1250000,Northern Suburb,43,2,Moderate reported crime
+Lagoon Beach,Milnerton,77.1,57,72,10,2322463.768,Blaauwbergstrand,7,0,Higher reported crime
+Lake Michelle Security and Eco Estate,Kommetjie,85.1,0,71,0,2750000,S penisula,50,0,Moderate reported crime
+Langeberg Hoogte,Kraaifontein,60.1,13,72,9,1750000,Northern Suburb,19,0,Higher reported crime
+Langeberg Ridge,Kraaifontein,56.4,13,73,9,1250000,Northern Suburb,19,0,Higher reported crime
+Lansdowne,unknown,50.7,39,73,22,1250000,Southern suburbs,34,12,Moderate reported crime
+Lentegeur,Mitchells Plain,17.7,51,73,22,5.00E+05,cape flats,46,11,Moderate reported crime
+Lochnerhof,Strand,91.2,0,67,0,1687500,helderberg,50,0,Moderate reported crime
+Loevenstein,Bellville,81.3,2,73,13,1750000,Northern Suburb,43,0,Moderate reported crime
+Longdown Estate,Somerset Central,62.5,27,32,7,1750000,helderberg,75,0,Lower reported crime
+Lotus River,Ottery/Cape Flats,31,11,32,10,7.00E+05,Southern suburbs,33,12,Higher reported crime
+Loucharmante,Bellville,46.2,0,32,4,1250000,Northern Suburb,29,0,Higher reported crime
+Maitland,Other,37.6,49,33,21,7.00E+05,Northern Suburb,20,6,Higher reported crime
+Mandalay,unknown,28.8,1,33,20,1878183.962,cape flats,46,1,Moderate reported crime
+Mansfield,Strand,91.2,0,67,0,1687500,helderberg,50,0,Moderate reported crime
+Meadowridge,unknown,85.6,2,75,11,3250000,Southern suburbs,77,0,Lower reported crime
+Melkbosch Strand,Melkbosstrand,81.9,23,75,0,2750000,Blaauwbergstrand,98,5,Lower reported crime
+Milnerton,Milnerton,77.1,15,76,5,1750000,Blaauwbergstrand,7,6,Higher reported crime
+Milnerton Ridge,Milnerton,79.1,5,76,5,2250000,Blaauwbergstrand,7,0,Higher reported crime
+Montclair,Briza ,26.9,1,76,21,4134615.385,cape flats,46,0,Moderate reported crime
+Monte Sereno,unknown,83.8,4,76,3,2750000,helderberg,75,0,Lower reported crime
+Monte Vista,Parow,68.5,9,76,9,2250000,Northern Suburb,24,3,Higher reported crime
+Morgenster,Brackenfell,52.7,34,77,8,1250000,Northern Suburb,87,0,Lower reported crime
+Mouille Point,Atlantic Seaboard,97,1,77,6,2750000,Atlantic,91,0,Lower reported crime
+Mountainside,Mountainside & Dennegeur,74.2,3,77,3,2250000,helderberg,98,2,Lower reported crime
+Mountview,unknown,39.6,24,35,21,1250000,cape flats,34,4,Moderate reported crime
+Mowbray,Observatory,79.2,155,35,25,2250000,Southern suburbs,35,4,Moderate reported crime
+Murdock Valley,Simons Town,89,0,88,0,2609375,S penisula,50,0,Moderate reported crime
+Mzuri Estate,Somerset Central,67.7,0,48,0,1979661.017,helderberg,50,0,Moderate reported crime
+Natures Valley,unknown,75.9,5,35,4,2750000,helderberg,61,0,Moderate reported crime
+Ndabeni,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+New Macassar Village,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+New Scheme,unknown,22.6,29,78,1,3.00E+05,helderberg,88,0,Lower reported crime
+Newlands,Rondebosch & Newlands,95.3,1,78,15,4750000,Southern suburbs,77,4,Lower reported crime
+Noordhoek,Noordhoek,93.6,3,35,2,4750000,S penisula,97,1,Lower reported crime
+Noordhoek Manor,Noordhoek,93.6,0,35,0,4750000,S penisula,50,0,Moderate reported crime
+Normandie,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+O'Kennedyville,unknown,95,13,36,9,1250000,Northern Suburb,61,0,Moderate reported crime
+Oakdale,Bellville,45.6,24,36,10,1250000,Northern Suburb,43,6,Moderate reported crime
+Oakglen,Bellville,55.6,18,36,8,9.00E+05,Northern Suburb,43,1,Moderate reported crime
+Observatory,Observatory,66,4,79,22,2250000,Southern suburbs,7,4,Higher reported crime
+Olive Grove,unknown,78,12,79,8,2250000,helderberg,75,0,Lower reported crime
+Onverwacht,Somerset Central,67.7,0,48,0,1979661.017,helderberg,50,0,Moderate reported crime
+Oosterzee-Bellville,Bellville,62.5,108,80,16,9.00E+05,Northern Suburb,42,2,Moderate reported crime
+Ottery,Ottery/Cape Flats,50.7,11,36,15,1250000,Southern suburbs,33,7,Higher reported crime
+Oude Westhof,Bellville,90.4,0,80,3,2250000,Northern Suburb,61,0,Moderate reported crime
+Paarde Vlei,unknown,35.6,29,37,6,9.00E+05,helderberg,75,0,Lower reported crime
+Panorama,Parow,73.1,4,80,11,2250000,Northern Suburb,42,0,Moderate reported crime
+Parel Vallei,Somerset Central,87.5,1,37,3,3250000,helderberg,75,1,Lower reported crime
+Parklands,Parklands,57.4,25,37,3,1250000,Blaauwbergstrand,26,6,Higher reported crime
+Parks Estate,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Parow,Parow,39.6,53,12,17,5.00E+05,Northern Suburb,42,0,Moderate reported crime
+Parow East,Parow,64.5,41,37,17,1797222.222,Northern Suburb,42,0,Moderate reported crime
+Parow North,Parow,68.3,14,80,14,1250000,Northern Suburb,42,2,Moderate reported crime
+Parow Valley,Parow,42.9,11,81,21,1250000,Northern Suburb,42,1,Moderate reported crime
+Pearl Marina,unknown,83.8,2,81,3,2750000,helderberg,75,0,Lower reported crime
+Pearlrise,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Peerless Park North,Kraaifontein,40.9,3,81,7,1250000,Northern Suburb,19,1,Higher reported crime
+Penhill,unknown,69.1,0,37,4,2250000,Northern Suburb,14,0,Higher reported crime
+Penlyn Estate,Athlone,52.4,0,82,21,1250000,cape flats,34,1,Moderate reported crime
+Pine Acres,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Pinehurst,Durbanville,75.4,0,82,5,2250000,Northern Suburb,61,1,Moderate reported crime
+Pinelands,Other,84.2,8,82,24,3250000,Northern Suburb,73,8,Lower reported crime
+Plattekloof 1,unknown,89.7,9,82,11,3750000,Northern Suburb,42,0,Moderate reported crime
+Plattekloof 2,Parow,92.5,1,38,9,4750000,Northern Suburb,42,0,Moderate reported crime
+Plattekloof 3,Parow,88.6,2,38,7,3750000,Northern Suburb,42,0,Moderate reported crime
+Plattekloof Glen,Parow,60.8,17,38,10,1750000,Northern Suburb,24,0,Higher reported crime
+Plumstead,Plumstead,68.1,3,38,13,1750000,Southern suburbs,77,8,Lower reported crime
+Polkadraai Security Estate,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Portland,Mitchells Plain,27.6,46,83,13,7.00E+05,cape flats,36,16,Moderate reported crime
+Protea Heights,Brackenfell,61.5,1,83,9,1750000,Northern Suburb,87,3,Lower reported crime
+Protea Valley,Durbanville,83.5,0,83,7,2750000,Northern Suburb,43,0,Moderate reported crime
+Ravensmead,Parow,28.2,28,83,18,7.00E+05,Northern Suburb,50,7,Moderate reported crime
+Retreat,Ottery/Cape Flats,37.4,41,38,10,9.00E+05,Southern suburbs,83,9,Lower reported crime
+Richmond Estate,unknown,50.7,10,84,15,1750000,Northern Suburb,24,3,Higher reported crime
+Richmond Park,unknown,69.7,6,39,4,1878183.962,Northern Suburb,88,0,Lower reported crime
+Richwood,Parow,43.6,6,39,3,1250000,Northern Suburb,88,1,Lower reported crime
+Ridgeworth,Bellville,70.4,0,48,9,2250000,Northern Suburb,43,0,Moderate reported crime
+Rivergate,Sandown,24.1,0,84,3,2250000,Blaauwbergstrand,26,2,Higher reported crime
+Rocklands,unknown,20.9,17,84,8,5.00E+05,cape flats,36,13,Moderate reported crime
+Rome Glen,Somerset Central,86.2,2,84,7,3250000,helderberg,75,0,Lower reported crime
+Rondebosch,Rondebosch & Newlands,92.8,0,84,21,2750000,Southern suburbs,98,12,Lower reported crime
+Rondebosch East,Rondebosch & Newlands,69.1,10,85,24,1750000,Southern suburbs,34,2,Moderate reported crime
+Rosebank,Rondebosch & Newlands,88.3,9,39,20,1750000,Southern suburbs,98,5,Lower reported crime
+Rosedale,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Rosedale Estate,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Rosendal,unknown,80.9,13,85,9,1250000,Northern Suburb,61,0,Moderate reported crime
+Rosenpark,unknown,69.7,11,85,9,1878183.962,Northern Suburb,61,0,Moderate reported crime
+Roundhay,unknown,72.4,7,85,6,1250000,helderberg,75,1,Lower reported crime
+Rouxville,Kuils River,60.8,0,85,6,2250000,Northern Suburb,29,0,Higher reported crime
+Royal Ascot,unknown,69.5,89,85,6,1750000,Blaauwbergstrand,7,0,Higher reported crime
+Rugby,Milnerton,38.9,160,86,11,9.00E+05,Blaauwbergstrand,7,1,Higher reported crime
+Rustdal,Kuils River,48.6,14,39,7,1250000,Northern Suburb,29,1,Higher reported crime
+Ruyterwacht,Parow,37.4,2,40,17,9.00E+05,Northern Suburb,32,4,Higher reported crime
+Rylands,Athlone,55.6,0,86,24,1750000,cape flats,31,2,Higher reported crime
+Sagewood,Sandown,79.8,0,40,0,1359375,Blaauwbergstrand,50,0,Moderate reported crime
+Salt River,Observatory,39.6,36,86,19,1250000,Southern suburbs,7,4,Higher reported crime
+Sanddrift,Milnerton,47.8,49,86,10,1250000,Blaauwbergstrand,7,0,Higher reported crime
+Sandown,Sandown,79.8,0,40,3,1250000,Blaauwbergstrand,26,0,Higher reported crime
+Sandvlei,unknown,69.7,1,6,6,1878183.962,helderberg,88,0,Lower reported crime
+Sarepta,unknown,24.1,8,86,9,7.00E+05,Northern Suburb,29,6,Higher reported crime
+Scarborough,Scarborough,83.8,0,40,1,2750000,S penisula,99,0,Lower reported crime
+Schapenberg Estate,Somerset Central,67.7,0,48,0,1979661.017,helderberg,50,0,Moderate reported crime
+Schonenberg,Erinvale & Other Estates,88.3,34,87,4,3250000,helderberg,75,0,Lower reported crime
+Schoongezicht,unknown,80.7,4,87,2,2750000,Northern Suburb,61,0,Moderate reported crime
+Scottsdene,Kraaifontein,20.3,23,40,8,5.00E+05,Northern Suburb,19,6,Higher reported crime
+Scottsville,unknown,25.6,15,87,8,7.00E+05,Northern Suburb,19,3,Higher reported crime
+Sea Point,Atlantic Seaboard,95.5,29,87,6,2750000,Atlantic,91,3,Lower reported crime
+Sherwood,Atlantis,12.7,4,88,4,3.00E+05,Blaauwbergstrand,63,0,Moderate reported crime
+Silver Oaks,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Silverglade,unknown,69.7,0,46,0,1878183.962,S penisula,50,0,Moderate reported crime
+Silvertown,unknown,25.2,85,41,26,7.00E+05,cape flats,31,5,Higher reported crime
+Silvertree Estate,Tokai & Steenberg,77.6,0,90,0,2718421.053,Southern suburbs,50,0,Moderate reported crime
+Simon's Town,Simons Town,89,4,88,2,2750000,S penisula,99,1,Lower reported crime
+Sir Lowrys Pass,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Sitari Country Estate,Country/Eco Estates,84.4,1,41,1,1250000,helderberg,88,1,Lower reported crime
+Somerset Forest,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Somerset Lakes,Erinvale & Other Estates,97.7,0,63,0,6083333.333,helderberg,50,0,Moderate reported crime
+Somerset Park,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Somerset Ridge,unknown,58.7,17,89,5,1750000,helderberg,75,0,Lower reported crime
+Somerset West,Somerset Central,67.7,70,41,6,1250000,helderberg,75,8,Lower reported crime
+Somerset West Rural,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Soneike I,Kuils River,65,0,89,8,1750000,Northern Suburb,29,1,Higher reported crime
+Sonkring,Brackenfell,71,0,41,8,2250000,Northern Suburb,87,0,Lower reported crime
+Sonnendal,unknown,77.6,14,89,12,2750000,Northern Suburb,42,0,Moderate reported crime
+Sonstraal,Durbanville,82.2,2,89,6,2750000,Northern Suburb,61,0,Moderate reported crime
+Sonstraal Heights,Durbanville,61.8,0,89,8,1750000,Northern Suburb,61,3,Moderate reported crime
+Southfield,Plumstead,54,4,89,12,1750000,Southern suburbs,77,1,Lower reported crime
+Southfork,Somerset Central,41.8,12,90,5,9.00E+05,helderberg,78,0,Lower reported crime
+Spanish Farm,unknown,98.2,1,90,3,6500000,helderberg,75,0,Lower reported crime
+Springbok Park,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Steenberg,Tokai & Steenberg,19.7,22,90,8,5.00E+05,Southern suburbs,83,7,Lower reported crime
+Steenbras View,Gordon's Bay,88.3,9,42,3,3250000,helderberg,75,0,Lower reported crime
+Stellenberg,Durbanville,71.6,3,90,7,2250000,Northern Suburb,61,0,Moderate reported crime
+Stellendale,Kuils River,28.7,9,42,8,7.00E+05,Northern Suburb,29,0,Higher reported crime
+Stellenridge,Durbanville,68,4,91,8,2250000,Northern Suburb,43,0,Moderate reported crime
+Stellenryk,Durbanville,73.6,3,91,8,2750000,Northern Suburb,61,1,Moderate reported crime
+Steynsrust,Somerset Central,67.7,0,48,0,1979661.017,helderberg,50,0,Moderate reported crime
+Stikland Industrial,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Stonehaven Estate,Fish Hoek,67.3,0,64,0,1775000,S penisula,50,0,Moderate reported crime
+Stonehurst Mountain Estate,Tokai & Steenberg,77.6,0,90,0,2718421.053,Southern suburbs,50,0,Moderate reported crime
+Stonewood Security Estate,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Strand,unknown,47.4,56,42,7,9.00E+05,helderberg,78,23,Lower reported crime
+Strandfontein,Mitchells Plain,33.2,17,91,3,9.00E+05,cape flats,98,3,Lower reported crime
+Summer Greens,Century City,35,120,91,11,9.00E+05,Blaauwbergstrand,7,1,Higher reported crime
+Sun Valley,Fish Hoek,55.6,12,92,3,1750000,S penisula,97,2,Lower reported crime
+Sunlands,unknown,69.7,0,46,0,1878183.962,Southern suburbs,50,0,Moderate reported crime
+Sunningdale,unknown,61.8,46,43,2,2250000,Blaauwbergstrand,26,7,Higher reported crime
+Sunnydale,Fish Hoek,44.2,12,92,4,1250000,S penisula,97,4,Lower reported crime
+Sunridge,Table View,58.1,99,43,5,1250000,Blaauwbergstrand,26,2,Higher reported crime
+Sunset Beach,Milnerton,95,73,92,6,5500000,Blaauwbergstrand,7,0,Higher reported crime
+Sunset Glen,Kuils River,59.2,0,42,0,1396212.121,Northern Suburb,50,0,Moderate reported crime
+Sunset Links,Milnerton,77.1,0,76,0,2322463.768,Blaauwbergstrand,50,0,Moderate reported crime
+Surrey Estate,unknown,44.2,3,92,22,1250000,cape flats,42,4,Moderate reported crime
+Sybrand Park,unknown,69.1,79,92,27,2250000,Southern suburbs,35,2,Moderate reported crime
+Table View,Table View,62.5,100,43,4,1750000,Blaauwbergstrand,26,3,Higher reported crime
+The Boulders,Simons Town,89,0,88,0,2609375,S penisula,50,0,Moderate reported crime
+The Conifers,Kuils River,20.3,19,43,7,5.00E+05,Northern Suburb,14,0,Higher reported crime
+The Crest,unknown,65.6,5,92,4,1750000,Northern Suburb,61,1,Moderate reported crime
+The Vines Estate,Constantia,96.7,0,20,0,6764705.882,Southern suburbs,50,0,Moderate reported crime
+Thornton,Other,60.1,2,93,21,1750000,Northern Suburb,73,1,Lower reported crime
+Three Anchor Bay,Atlantic Seaboard,93.9,29,93,6,2250000,Atlantic,91,1,Lower reported crime
+Tijgerhof,Milnerton,59.6,134,93,8,1250000,Blaauwbergstrand,7,2,Higher reported crime
+Tokai,Tokai & Steenberg,90.7,9,93,5,3750000,Southern suburbs,24,0,Higher reported crime
+Townsend Estate,Parow,54,73,93,14,1250000,Northern Suburb,24,1,Higher reported crime
+Tre Donne,Somerset Central,81.7,0,44,2,2750000,helderberg,75,0,Lower reported crime
+Turf Hall Estate,unknown,69.7,0,46,0,1878183.962,Southern suburbs,50,0,Moderate reported crime
+Twin Palms,Strand,45.3,2,93,7,1250000,helderberg,78,0,Lower reported crime
+Tygerdal,Parow,66.3,17,44,12,1750000,Northern Suburb,24,0,Higher reported crime
+Tygerfalls,Bellville,56.8,0,36,0,1610240.964,Northern Suburb,50,0,Moderate reported crime
+Tygervalley,Bellville,56.8,13,7,8,1610240.964,Northern Suburb,43,0,Moderate reported crime
+Tygervalley Waterfront,Bellville,56.8,2,94,9,1610240.964,Northern Suburb,43,0,Moderate reported crime
+Uitzicht,Durbanville,61.8,0,45,6,1750000,Northern Suburb,61,1,Moderate reported crime
+Valmary Park,Durbanville,88,0,48,5,3750000,Northern Suburb,61,0,Moderate reported crime
+Van Riebeeckshof,Durbanville,83.2,0,45,4,3250000,Northern Suburb,61,0,Moderate reported crime
+Van Riebeeckstrand,Melkbosstrand,81.9,0,75,0,2750000,Blaauwbergstrand,50,0,Moderate reported crime
+Van Ryneveld,unknown,69.7,0,46,0,1878183.962,helderberg,50,0,Moderate reported crime
+Vanguard,Athlone,55.6,0,59,0,1543181.818,cape flats,50,0,Moderate reported crime
+Vasco Estate,Parow,52.4,16,94,14,1250000,Northern Suburb,24,3,Higher reported crime
+Vergesig,unknown,79.4,0,45,2,2750000,Northern Suburb,61,0,Moderate reported crime
+Vierlanden,Durbanville,83.2,0,94,2,3250000,Northern Suburb,61,1,Moderate reported crime
+Viking Village,unknown,45.6,0,94,7,9.00E+05,Northern Suburb,19,0,Higher reported crime
+Vredehoek,unknown,93.2,2,94,12,2750000,Cape Town City Centre,31,3,Higher reported crime
+Vredekloof,unknown,65,1,95,9,1750000,Northern Suburb,87,1,Lower reported crime
+Vredekloof East,unknown,42.3,2,95,10,9.00E+05,Northern Suburb,87,0,Lower reported crime
+Vredekloof Heights,unknown,63.6,1,95,10,2250000,Northern Suburb,87,0,Lower reported crime
+Vredenberg-Bellville,unknown,69.7,0,46,0,1878183.962,Northern Suburb,50,0,Moderate reported crime
+Vygeboom,unknown,92.3,0,95,5,4250000,Northern Suburb,61,0,Moderate reported crime
+Waves Edge,unknown,69.7,0,46,0,1878183.962,Blaauwbergstrand,50,0,Moderate reported crime
+Welgedacht,Durbanville,95.8,0,46,8,6500000,Northern Suburb,43,0,Moderate reported crime
+Welgelee,Brackenfell,55.6,0,56,0,1469767.442,Northern Suburb,50,0,Moderate reported crime
+Welgelegen,Parow,75.2,3,96,6,2750000,Northern Suburb,42,1,Moderate reported crime
+Welgemoed,Bellville,89.2,2,46,9,4250000,Northern Suburb,43,1,Moderate reported crime
+Wellway Park,unknown,83,18,96,4,3250000,Northern Suburb,61,0,Moderate reported crime
+West Beach,unknown,78.5,12,46,2,1750000,Blaauwbergstrand,26,1,Higher reported crime
+West Riding,Table View,58.1,8,46,5,5.00E+05,Blaauwbergstrand,26,1,Higher reported crime
+Westgate,unknown,29.2,11,97,13,7.00E+05,cape flats,36,0,Moderate reported crime
+Westlake,Tokai & Steenberg,16.2,8,97,6,9.00E+05,Southern suburbs,26,2,Higher reported crime
+Westridge - Mitchells Plain,Mitchells Plain,25.9,102,97,13,5.00E+05,helderberg,36,8,Moderate reported crime
+Wetton,Ottery/Cape Flats,51.4,37,97,17,1250000,Southern suburbs,34,0,Moderate reported crime
+Whispering Pines,Somerset Central,67.7,0,48,0,1979661.017,helderberg,50,0,Moderate reported crime
+Windsor Park,Kraaifontein,47,0,57,0,1215454.545,Northern Suburb,50,0,Moderate reported crime
+Winslow,unknown,49.9,8,98,3,1250000,helderberg,98,0,Lower reported crime
+Woodbridge Island,Milnerton,77.1,0,76,0,2322463.768,Blaauwbergstrand,50,0,Moderate reported crime
+Woodlands,unknown,19,40,47,15,5.00E+05,cape flats,46,5,Moderate reported crime
+Wynberg,Wynberg,54,101,98,13,1250000,Southern suburbs,57,16,Moderate reported crime
+Zevenwacht Country Estate,unknown,94.2,0,99,3,4750000,Northern Suburb,29,0,Higher reported crime
+Zevenwacht Retirement Village,unknown,77.2,0,47,3,3750000,Northern Suburb,29,0,Higher reported crime
+Zevenzicht,unknown,75.9,0,99,4,2750000,Northern Suburb,29,0,Higher reported crime
+Zilvermyn Estate,unknown,69.7,0,46,0,1878183.962,S penisula,50,0,Moderate reported crime
+Zoo Park,Kraaifontein,42.9,13,99,10,1250000,Northern Suburb,19,0,Higher reported crime
