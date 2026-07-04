@@ -1,5 +1,19 @@
 "use client"; // Enables dynamic clicking and tab state
-
+import { 
+  RiSearchLine, 
+  RiNotification3Line, 
+  RiSettings3Line, 
+  RiDashboardLine, 
+  RiMoneyDollarCircleLine, 
+  RiBuilding4Line, 
+  RiMapPinLine, 
+  RiFileChartLine, 
+  RiUserLine,
+  RiArrowUpLine,
+  RiArrowDownLine,
+  RiCheckboxCircleLine
+} from '@remixicon/react';
+import { AreaChart, BarChart, DonutChart } from '@tremor/react';
 import {
   Tabs,
   TabsContent,
@@ -50,9 +64,121 @@ export type CptMarker = {
   deal_status?: string;
 };
 
+// Extracted the Login Form cleanly into its own component
+const AgentLoginForm = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
+  const [formTab, setFormTab] = useState('login');
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <div className="flex items-center justify-center w-full mt-12 font-sans">
+      <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Log in to your account</h1>
+          <p className="text-slate-500 text-sm">Welcome back! Please enter your details.</p>
+        </div>
+
+        <div className="flex p-1 mb-6 bg-slate-100 rounded-lg">
+          <button
+            onClick={() => setFormTab('signup')}
+            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${formTab === 'signup'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            Sign up
+          </button>
+          <button
+            onClick={() => setFormTab('login')}
+            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${formTab === 'login'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            Log in
+          </button>
+        </div>
+
+        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); onLoginSuccess(); }}>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all text-slate-900 placeholder-slate-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••••••"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all text-slate-900 placeholder-slate-400 tracking-widest"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {showPassword ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  )}
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center">
+              <input
+                id="remember"
+                type="checkbox"
+                className="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500 cursor-pointer"
+              />
+              <label htmlFor="remember" className="ml-2 text-sm text-slate-600 cursor-pointer">
+                Remember for 30 days
+              </label>
+            </div>
+            <a href="#" className="text-sm font-semibold text-amber-600 hover:text-amber-500 transition-colors">
+              Forgot password
+            </a>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-2.5 px-4 text-sm font-semibold text-slate-900 bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+          >
+            Sign in
+          </button>
+
+          <button
+            type="button"
+            className="w-full flex items-center justify-center py-2.5 px-4 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            Sign in with Google
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function VoloraPlatform() {
   // 1. Navigation & UI State
-  const [activeTab, setActiveTab] = useState<'overview' | 'valuation' | 'benchmarks'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'valuation' | 'benchmarks' | 'Agentportal'>('overview');
   const [selectedSuburb, setSelectedSuburb] = useState<string | null>(null);
   const [backendStats, setBackendStats] = useState<any>(null);
   const [isFetchingStats, setIsFetchingStats] = useState(false);
@@ -71,8 +197,10 @@ export default function VoloraPlatform() {
   const [askingPrice, setAskingPrice] = useState<number | null>(null);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [propType, setPropType] = useState('House');
-  const [lowerbound,setlowerbound] = useState<number>(0);
-  const [upperbound,setupperbound] = useState<number>(0);
+  const [lowerbound, setlowerbound] = useState<number>(0);
+  const [upperbound, setupperbound] = useState<number>(0);
+
+  const [isAgentLoggedIn, setIsAgentLoggedIn] = useState(false);
 
   // 4. Engine Memory
   const [isLoading, setIsLoading] = useState(false);
@@ -106,7 +234,6 @@ export default function VoloraPlatform() {
         return res.json();
       })
       .then((data) => {
-        // A. Set the terminal bar numbers safely
         if (data.statbar) {
           setNumDf(data.statbar[0]?.total_count || 0);
           setArbCount(data.statbar[1]?.arb_count || 0);
@@ -114,7 +241,6 @@ export default function VoloraPlatform() {
           setmeter(data.statbar[3]?.sq_meter || 0);
         }
 
-        // B. Format the markers
         if (data.listings) {
           const formattedMarkers = data.listings.map((listing: any) => {
             const variance = Math.round(((listing.predicted_value - listing.price) / listing.predicted_value) * 100);
@@ -186,9 +312,7 @@ export default function VoloraPlatform() {
         });
 
         mapInstanceRef.current.on('load', () => {
-          // Force a resize calculation to ensure the canvas doesn't load invisibly
           mapInstanceRef.current.resize();
-
           mapInstanceRef.current.addSource('suburbs', { type: 'geojson', data: '/cape-town-suburbs.json' });
           mapInstanceRef.current.addLayer({ id: 'suburbs-fill', type: 'fill', source: 'suburbs', paint: { 'fill-color': '#000000', 'fill-opacity': 0.1 } });
           mapInstanceRef.current.addLayer({ id: 'suburbs-highlight', type: 'fill', source: 'suburbs', paint: { 'fill-color': '#10b981', 'fill-opacity': 0.4 }, filter: ['==', 'OFC_SBRB_NAME', ''] });
@@ -204,7 +328,6 @@ export default function VoloraPlatform() {
             mapInstanceRef.current.setFilter('suburbs-highlight', ['==', 'OFC_SBRB_NAME', '']);
           });
 
-          // Click Listener Outside Mouseleave
           mapInstanceRef.current.on('click', 'suburbs-fill', (e: any) => {
             if (e.features.length > 0) {
               const clickedSuburb = e.features[0].properties.OFC_SBRB_NAME;
@@ -214,7 +337,6 @@ export default function VoloraPlatform() {
         });
       };
 
-      // Robust Initialization check
       if ((window as any).mapboxgl) {
         initialize();
       } else {
@@ -225,7 +347,6 @@ export default function VoloraPlatform() {
       }
     }
 
-    // Safely cleanup map to prevent ghost instances
     return () => {
       if (activeTab !== 'benchmarks' && mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -289,7 +410,7 @@ export default function VoloraPlatform() {
     },
     {
       name: 'Asking Price',
-      stat: askingPrice ? `R ${askingPrice.toLocaleString('ZA')}` : 'N/A',    
+      stat: askingPrice ? `R ${askingPrice.toLocaleString('ZA')}` : 'N/A',
     },
     {
       name: 'Monthly Variance',
@@ -334,7 +455,6 @@ export default function VoloraPlatform() {
     fetchDeepStats();
   }, [selectedSuburb]);
 
-  // Sparkline Tab Data
   const sparklineData = [
     { title: 'Median Rent', subtitle: '450 Shares', value: `R${backendStats?.avgrent_one ?? ''}`, bars: [40, 60, 50, 100] },
     { title: 'Number of  Listings', subtitle: '112 Shares', value: backendStats?.one_bed ?? '', bars: [60, 70, 90, 80] },
@@ -354,7 +474,8 @@ export default function VoloraPlatform() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className={`min-h-screen font-sans transition-colors duration-500 ${activeTab === 'Agentportal' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
+      }`}>
       {/* GLOBAL NAVIGATION */}
       <div className="p-4 w-full sticky top-0 z-50">
         <div className="max-w-7xl mx-auto bg-slate-900/80 backdrop-blur-md text-white rounded-full px-6 py-3 flex items-center justify-between shadow-lg border border-slate-800">
@@ -368,9 +489,20 @@ export default function VoloraPlatform() {
             <button onClick={() => setActiveTab('valuation')} className={`text-sm font-medium transition-colors ${activeTab === 'valuation' ? 'text-indigo-400 font-semibold' : 'text-slate-400 hover:text-white'}`}>Predictive Valuation</button>
             <button onClick={() => setActiveTab('benchmarks')} className={`text-sm font-medium transition-colors ${activeTab === 'benchmarks' ? 'text-indigo-400 font-semibold' : 'text-slate-400 hover:text-white'}`}>Suburb Benchmarks</button>
           </div>
-
           <div>
-            <button className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2 px-4 rounded-full transition-all shadow-sm">Agent Portal</button>
+            <button
+              onClick={() => setActiveTab('Agentportal')}
+              className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-gray-900 transition-all duration-200 rounded-md bg-amber-500 shadow-sm hover:bg-amber-600 hover:shadow-md hover:-translate-y-px"
+            >
+              <svg
+                className="w-4 h-4 mr-2 text-gray-900"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+              Agent Portal
+            </button>
           </div>
         </div>
       </div>
@@ -380,7 +512,7 @@ export default function VoloraPlatform() {
 
         {/* VIEW 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <><div className="w-full flex flex-col items-center gap-6">
+          <div className="w-full flex flex-col items-center gap-6">
             <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="md:col-span-2 md:row-span-2 bg-slate-900/40 backdrop-blur-md border border-slate-800/60 flex flex-col justify-end p-10 shadow-2xl">
                 <h1 className="text-5xl font-black tracking-tight mb-4 text-white">
@@ -459,9 +591,7 @@ export default function VoloraPlatform() {
               </div>
             </div>
 
-
             <div className="relative isolate overflow-hidden bg-transparent px-6 py-24 sm:py-32 lg:overflow-visible lg:px-0">
-
               {/* The Clean Background Grid */}
               <div className="absolute inset-0 -z-10 overflow-hidden">
                 <svg
@@ -480,7 +610,6 @@ export default function VoloraPlatform() {
                       <path d="M100 200V.5M.5 .5H200" fill="none" />
                     </pattern>
                   </defs>
-                  {/* THE UGLY GREY BLOCKS WERE DELETED FROM HERE */}
                   <rect fill="url(#e813992c-7d03-4cc4-a2bd-151760b470a0)" width="100%" height="100%" strokeWidth={0} />
                 </svg>
               </div>
@@ -629,11 +758,9 @@ export default function VoloraPlatform() {
                       <h2 className="mt-16 text-2xl font-bold tracking-tight text-white">The new standard for Cape Town real estate.</h2>
                       <p className="mt-6">
                         The property market rewards those with the best data. Whether you are an agent pricing a luxury apartment in Sea Point, an investor calculating gross yield, or a renter looking for a fairly priced home, our platform gives you the structural intelligence you need. Step away from manual spreadsheets and endless scrolling, and start making decisions backed by the daily truth of the market.
-
-                        <button onClick={() => setActiveTab('valuation')} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-xl w-fit flex items-center gap-2 transition-all">
+                        <button onClick={() => setActiveTab('valuation')} className="mt-4 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-xl w-fit flex items-center gap-2 transition-all">
                           Launch Engine <RiArrowRightLine className="size-2.5" />
                         </button>
-
                       </p>
                     </div>
                   </div>
@@ -641,7 +768,6 @@ export default function VoloraPlatform() {
               </div>
             </div>
           </div>
-          </>
         )}
 
         {/* VIEW 2: PREDICTIVE VALUATION ENGINE */}
@@ -747,8 +873,8 @@ export default function VoloraPlatform() {
                               item.status === 'within'
                                 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                                 : item.status === 'observe'
-                                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                                : 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+                                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                                  : 'bg-rose-500/20 text-rose-400 border-rose-500/30',
                               'inline-flex items-center gap-x-1.5 rounded border px-2 py-1 text-[10px] font-bold tracking-wider'
                             )}>
                               {item.status === 'within' ? <RiCheckLine className="size-1" /> : item.status === 'observe' ? <RiEyeLine className="size-3" /> : <RiErrorWarningLine className="size-3" />}
@@ -942,7 +1068,300 @@ export default function VoloraPlatform() {
             )}
           </div>
         )}
+
+        {/* VIEW 4: AGENT PORTAL */}
+        {activeTab === 'Agentportal' && (
+          <div className="flex flex-col space-y-6 h-full">
+
+            {/* Conditional Rendering: Show Dashboard if logged in, otherwise show Login Form */}
+            {isAgentLoggedIn ? (
+              <AgentDashboard onLogout={() => setIsAgentLoggedIn(false)} />
+            ) : (
+              <>
+                <div className="text-center md:text-left">
+                  <KineticText text="Agent Portal" highlightFirst={true} className="text-2xl md:text-8xl tracking-tighter text-amber" />
+                  <p className="text-slate-500">.</p>
+                </div>
+                <AgentLoginForm onLoginSuccess={() => setIsAgentLoggedIn(true)} />
+              </>
+            )}
+
+          </div>
+        )}
+
       </main>
     </div>
   );
 }
+
+const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
+  const [activeMenu, setActiveMenu] = useState('Analytics');
+  const [locationLookup, setLocationLookup] = useState('');
+
+  // --- Mock Data for Tremor Charts ---
+  const revenueData = [
+    { date: 'Mon', 'Volora Value': 2890, 'Asking Price': 2338 },
+    { date: 'Tue', 'Volora Value': 2756, 'Asking Price': 2103 },
+    { date: 'Wed', 'Volora Value': 3322, 'Asking Price': 2194 },
+    { date: 'Thu', 'Volora Value': 3470, 'Asking Price': 2108 },
+    { date: 'Fri', 'Volora Value': 3475, 'Asking Price': 1812 },
+    { date: 'Sat', 'Volora Value': 3129, 'Asking Price': 1726 },
+    { date: 'Sun', 'Volora Value': 3490, 'Asking Price': 1982 },
+  ];
+
+  const locationData = [
+    { Location: 'Sea Point', 'Active Deals': 45 },
+    { Location: 'CBD', 'Active Deals': 32 },
+    { Location: 'Camps Bay', 'Active Deals': 28 },
+    { Location: 'Vredehoek', 'Active Deals': 19 },
+    { Location: 'Rondebosch', 'Active Deals': 14 },
+  ];
+
+  const portfolioBreakup = [
+    { name: 'Bargain (Arbitrage)', value: 45 },
+    { name: 'Fairly Priced', value: 35 },
+    { name: 'Overpriced (Risk)', value: 20 },
+  ];
+
+  const recentTransactions = [
+    { id: 1, type: 'New Mandate', location: 'Sea Point, 2 Bed', amount: '+ R 18,500', isPositive: true },
+    { id: 2, type: 'Price Adjustment', location: 'CBD, Studio', amount: '- R 1,200', isPositive: false },
+    { id: 3, type: 'Lease Signed', location: 'Vredehoek, 3 Bed', amount: '+ R 24,000', isPositive: true },
+    { id: 4, type: 'Valuation Run', location: 'Camps Bay, Villa', amount: 'R 85,000', isPositive: true },
+  ];
+
+  return (
+    <div className="flex h-screen w-full bg-slate-50 font-sans text-slate-900 absolute inset-0 z-50">
+      
+      {/* 1. SIDEBAR */}
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
+        <div className="h-16 flex items-center px-6 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-white font-black text-xs">V</div>
+            <span className="font-bold text-lg tracking-tight">Valora</span>
+          </div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto py-4 px-4 space-y-6">
+          <div>
+            <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Dashboards</p>
+            <div className="space-y-1">
+              {['Analytics', 'Predictive Valuation', 'Saved Deals'].map((item) => (
+                <button
+                  key={item}
+                  onClick={() => setActiveMenu(item)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeMenu === item 
+                    ? 'bg-amber-500 text-slate-900 shadow-sm' 
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  {item === 'Analytics' && <RiDashboardLine className="w-4 h-4" />}
+                  {item === 'Predictive Valuation' && <RiFileChartLine className="w-4 h-4" />}
+                  {item === 'Saved Deals' && <RiMoneyDollarCircleLine className="w-4 h-4" />}
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Intelligence</p>
+            <div className="space-y-1">
+              <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                <RiMapPinLine className="w-4 h-4" /> Lookup by Location
+              </button>
+              <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                <RiBuilding4Line className="w-4 h-4" /> Market Pulse
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-slate-100">
+          <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-rose-600 hover:bg-rose-50 transition-colors">
+            <RiSettings3Line className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* 2. MAIN CONTENT AREA */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        {/* Top Header */}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+          <div className="flex items-center w-96 relative">
+            <RiSearchLine className="w-4 h-4 text-slate-400 absolute left-3" />
+            <input 
+              type="text" 
+              placeholder="Search by Location..." 
+              value={locationLookup}
+              onChange={(e) => setLocationLookup(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+            />
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors relative">
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
+              <RiNotification3Line className="w-5 h-5" />
+            </button>
+            <div className="h-8 w-8 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 font-bold border border-amber-200">
+              <RiUserLine className="w-4 h-4" />
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Dashboard Grid */}
+        <div className="flex-1 overflow-y-auto p-8">
+          <div className="max-w-7xl mx-auto space-y-6">
+            
+            {/* ROW 1: Hero & Quick Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Welcome Card (Spans 8) */}
+              <Card className="lg:col-span-8 bg-amber-50 border-none shadow-sm flex flex-col md:flex-row items-center justify-between p-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-1">Volora Analytics Dashboard</h2>
+                  <p className="text-slate-600 text-sm mb-6">Here is what is happening across your tracked locations today.</p>
+                  <div className="flex gap-8">
+                    <div>
+                      <p className="text-3xl font-bold text-slate-900">R 2.4M</p>
+                      <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1">
+                        <RiArrowUpLine className="w-3 h-3" /> +12% Total Arbitrage Value
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-slate-900">42</p>
+                      <p className="text-xs font-medium text-amber-600 mt-1">Active Deal Alerts</p>
+                    </div>
+                  </div>
+                </div>
+                {/* Illustration Placeholder */}
+                <div className="hidden md:flex w-48 h-32 bg-amber-200/50 rounded-xl border border-amber-300/50 items-center justify-center">
+                  <RiBuilding4Line className="w-12 h-12 text-amber-500" />
+                </div>
+              </Card>
+
+              {/* Weekly Stat (Spans 2) */}
+              <Card className="lg:col-span-2 shadow-sm border-slate-200 p-6 flex flex-col justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Avg Market Variance</p>
+                  <p className="text-2xl font-bold text-slate-900 mt-2">- 14.5%</p>
+                </div>
+                <div className="text-xs font-medium text-emerald-600 flex items-center gap-1 mt-4">
+                  <RiArrowDownLine className="w-3 h-3" /> Underpriced trend
+                </div>
+              </Card>
+
+              {/* Scraped Listings (Spans 2) */}
+              <Card className="lg:col-span-2 shadow-sm border-slate-200 p-6 flex flex-col justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Listings Analyzed</p>
+                  <p className="text-2xl font-bold text-slate-900 mt-2">1,204</p>
+                </div>
+                <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-4">
+                  Updated 10 mins ago
+                </div>
+              </Card>
+            </div>
+
+            {/* ROW 2: Main Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Bar Chart (Spans 8) */}
+              <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Valuation Tracking</h3>
+                    <p className="text-sm text-slate-500">Estimated value vs Asking price</p>
+                  </div>
+                </div>
+                <BarChart
+                  className="h-72 mt-4"
+                  data={revenueData}
+                  index="date"
+                  categories={["Volora Value", "Asking Price"]}
+                  colors={["amber", "slate"]}
+                  yAxisWidth={48}
+                  showAnimation={true}
+                />
+              </Card>
+
+              {/* Right Side Column (Spans 4) */}
+              <div className="lg:col-span-4 flex flex-col gap-6">
+                
+                {/* Donut Chart */}
+                <Card className="shadow-sm border-slate-200 p-6 flex-1">
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">Portfolio Breakup</h3>
+                  <p className="text-sm text-slate-500 mb-6">Current deal distribution</p>
+                  <div className="flex items-center justify-center">
+                    <DonutChart
+                      className="h-40"
+                      data={portfolioBreakup}
+                      category="value"
+                      index="name"
+                      colors={["emerald", "amber", "rose"]}
+                      showLabel={true}
+                    />
+                  </div>
+                  <div className="mt-6 flex justify-between items-center px-4">
+                    <p className="text-2xl font-bold text-slate-900">45%</p>
+                    <p className="text-sm font-medium text-emerald-600">Bargain Deals</p>
+                  </div>
+                </Card>
+              </div>
+
+            </div>
+
+            {/* ROW 3: Data Tables & Area Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Deals by Location (Spans 8) */}
+              <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Active Deals by Location</h3>
+                <p className="text-sm text-slate-500 mb-6">Top performing analytical hubs</p>
+                <BarChart
+                  className="h-64"
+                  data={locationData}
+                  index="Location"
+                  categories={["Active Deals"]}
+                  colors={["amber"]}
+                  layout="vertical"
+                  showLegend={false}
+                  showAnimation={true}
+                />
+              </Card>
+
+              {/* Recent Transactions List (Spans 4) */}
+              <Card className="lg:col-span-4 shadow-sm border-slate-200 p-6">
+                <h3 className="text-lg font-bold text-slate-900 mb-6">Recent Activity</h3>
+                <div className="space-y-6">
+                  {recentTransactions.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${tx.isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
+                          <RiCheckboxCircleLine className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">{tx.type}</p>
+                          <p className="text-xs text-slate-500">{tx.location}</p>
+                        </div>
+                      </div>
+                      <p className={`text-sm font-bold ${tx.isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
+                        {tx.amount}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
