@@ -7,7 +7,6 @@ import {
 } from "@/components/Tabs";
 import { KineticText } from "@/components/ui/kinetic-text";
 import { MorphingText } from "@/components/ui/morphing-text";
-import { locations } from '@/lib/location';
 import { cx } from '@/lib/utils';
 import {
   RiArrowDownLine,
@@ -191,6 +190,7 @@ export default function VoloraPlatform() {
   const [activeDeals, setActiveDeals] = useState<CptMarker[]>([]);
 
   // 3. Real Estate Input States
+  const [locations, setLocations] = useState<{ value: string }[]>([]);
   const [suburb, setSuburb] = useState('');
   const [bedrooms, setBedrooms] = useState(3);
   const [bathrooms, setBathrooms] = useState(2);
@@ -228,7 +228,7 @@ export default function VoloraPlatform() {
     { label: 'Mountain View', value: 'has_mountain_view' },
     { label: '24/hr Security', value: 'has_sercurity' },
     { label: ' Recently Renovated', value: 'mentions_renovated' },
-    { label: 'Luxury Status', value: 'mentions_luxury' },
+    { label: 'Luxurious/Modern Touches', value: 'mentions_luxury' },
     { label: 'Garden', value: 'has_garden' },
     { label: 'Gated Community', value: 'is_gated' }
 
@@ -304,6 +304,21 @@ export default function VoloraPlatform() {
       script.async = true;
       document.head.appendChild(script);
     }
+  }, []);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/locations")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch locations");
+        return res.json();
+      })
+      .then((data) => {
+        const formatted = (data.locations || []).map((loc: string) => ({ value: loc }));
+        setLocations(formatted);
+      })
+      .catch((error) => {
+        console.error("Location fetch error:", error);
+      });
   }, []);
 
   // 8. MAPBOX INITIALIZATION (Benchmarks Tab)

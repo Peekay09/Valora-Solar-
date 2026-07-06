@@ -173,7 +173,7 @@ def get_deal_status(pred_price: float, ask_price: float) -> str:
     price_diff = pred_price - ask_price
     underprice_prct = (price_diff / pred_price) * 100
  
-    if underprice_prct >= 28 :
+    if underprice_prct >= 25 :
         return 'BARGAIN'
     elif underprice_prct >= 15:
         return 'DEAL'
@@ -245,11 +245,7 @@ def get_confidence_tier(suburb_listing_count: int) -> dict:
     return {"tier": "Significant Doubt", "label": "Wide range — treat as a starting point, not a fixed number."}
  
 def predict_with_bounds(input_encoded: pd.DataFrame):
-    """
-    PIM — NEW: replaces the flat actual_rands * 0.85 / 1.15 placeholder
-    with real model-derived bounds. Same encoded input feeds all three
-    models, so this is one extra alignment step, not a new pipeline.
-    """
+    
     log_point = mod4.predict(input_encoded)[0]
     point_price = np.exp(log_point)
  
@@ -293,16 +289,33 @@ def encode_with_label_encoders(df: pd.DataFrame, encoders: dict) -> pd.DataFrame
 def predict_price(prop: PropertyInput):
     clean_input_location = prop.location.lower().strip()
 
+    # 1. Try exact match on 'location' first (fast path, most common case)
     location_data = lookup_db[
         lookup_db['location'].astype(str).str.lower().str.strip() == clean_input_location
     ]
+
+    # 2. NEW: fall back to macro_suburb, same pattern already used in /api/clickedsuburb
+    if location_data.empty and 'macro_suburb' in lookup_db.columns:
+        location_data = lookup_db[
+            lookup_db['macro_suburb'].astype(str).str.lower().str.strip() == clean_input_location
+        ]
+
+    # 3. NEW: fall back to a "starts with" / substring match for near-misses
+    #    (e.g. "Wynberg" typed when only "Wynberg Upper" rows exist, or trailing
+    #    whitespace / punctuation differences between frontend and DB)
+    if location_data.empty:
+        location_data = lookup_db[
+            lookup_db['location'].astype(str).str.lower().str.strip()
+            .str.contains(clean_input_location, na=False)
+        ]
+
     if location_data.empty:
         return {
             "message": "Error: Location not found in database. Please check the suburb name and try again."
         }
         
     clean_proptype = prop.proptype.title()
-    clean_location = prop.location.title()
+    clean_location= prop.location.title()
     clean_lease= prop.lease_term.title()
  
     input_df = pd.DataFrame([{
@@ -557,8 +570,8 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             sub_df['actual_price'] = np.exp(sub_df['price']) 
  
             # Calculate Suburb Metrics using .apply() to avoid Pandas Series errors
-            sub_df['verdict'] = sub_df.apply(lambda x: get_deal_status(x['actual_price'], x['predicted_price']), axis=1)
-            
+            # AFTER (matches the function signature: predicted first, actual/asking second)
+            sub_df['verdict'] = sub_df.apply(lambda x: get_deal_status(x['predicted_price'], x['actual_price']), axis=1)            
             # Count bargains
             num_arb = int((sub_df['verdict'] == 'BARGAIN').sum())
  
@@ -631,3 +644,15 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
     except Exception as e:
         print(f"CRITICAL SUBURB STATS ERROR: {e}")
         return {"suburb": suburb, "sub_count": 0, "sub_arb": 0, "sub_rent": 0, "sub_score": 0, "sub_square": 0}
+
+@app.get("/api/locations")
+def get_valid_locations():
+    locations = (
+        train_db['location']
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .unique()
+        .tolist()
+    )
+    return {"locations": sorted(locations)}
