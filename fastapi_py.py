@@ -31,15 +31,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
  
+def enforce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    NUMERIC_COLS = [
+    'bath', 'gar', 'erf_size', 'taxi_routes', 'safety_score',
+    'healthcare_facilities_5km', 'school_count',
+    'civic_responsiveness_percentile', 'beds',
+    'median_gv', 'property_percentile', 'floor'
+]
+    BOOL_COLS = [
+    'has_pool', 'has_internet', 'has_sercurity', 'is_furnished', 'has_backup',
+    'is_HouseShare', 'has_ocean_view', 'has_mountain_view', 'is_gated', 'has_garden',
+    'mentions_renovated', 'mentions_luxury'
+]
+    df = df.copy()
+    for col in NUMERIC_COLS:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    for col in BOOL_COLS:
+        if col in df.columns:
+            df[col] = (
+                df[col].astype(str).str.lower()
+                .map({'true': 1, 'false': 0, '1': 1, '0': 0, 'nan': 0})
+                .fillna(0)
+                .astype(int)
+            )
+    return df
+
+
 # Load your institutional-grade model and column structures
-mod4 = joblib.load('mod4_lgbm 0.29rmse_0.82var_6.2k.joblib')
+mod4 = joblib.load('mod4_lgbm_model.joblib')
 mod4_columns = joblib.load('mod4_columns.joblib')
 lookup_db2 = supabase.table('FINAL DAILY RENTAL DATA').select('*').limit(50000).execute()
 lookup_db = pd.DataFrame(lookup_db2.data)
+lookup_db = enforce_dtypes(lookup_db)
 lookup_db['price'] = pd.to_numeric(lookup_db['price'], errors='coerce')
 lookup_db['beds'] = pd.to_numeric(lookup_db['beds'], errors='coerce')
 train_db = lookup_db
-
+label_encoders = joblib.load('label_encoders.joblib')
 mod4_lower = joblib.load('mod4_lgbm_model_lower_q10.joblib')
 mod4_upper = joblib.load('mod4_lgbm_model_upper_q90.joblib')
  
@@ -68,7 +96,7 @@ class PropertyInput(BaseModel):
     floor:int
     gar: int
     erf_size:int
-    has_Pool: bool
+    has_pool: bool
     lease_term:str
     has_internet: bool
     has_sercurity: bool
@@ -77,8 +105,12 @@ class PropertyInput(BaseModel):
     is_HouseShare: bool
     has_ocean_view:bool
     has_mountain_view:bool
-    is_modern:bool
-    asking_price: int
+    is_gated:bool
+    has_garden: bool
+    mentions_renovated: bool
+    mentions_luxury: bool
+    asking_price: float = 0.0
+
  
 # ==========================================
 # GEOCODING ENGINE SETUP
@@ -197,27 +229,20 @@ def get_suburb_coordinates(suburb_name: str):
 # mean different things, so comp density gates the tier alongside
 # the model's own uncertainty.
 # ================================================================
-def get_confidence_tier(interval_width_pct: float, suburb_listing_count: int) -> dict:
-    """
-    interval_width_pct: (upper - lower) / point_estimate * 100
-    suburb_listing_count: how many comps train_db has for this suburb
- 
-    Thresholds are a starting point — once you've run the diagnostic
-    printout from the training script against your real 6,200 rows,
-    come back and tune these against the actual distribution rather
-    than eyeballing it.
-    """
-    if suburb_listing_count < 15:
-        return {"tier": "Exploratory", "label": "Not enough comps yet — treat as a starting point."}
- 
-    if interval_width_pct <= 20 and suburb_listing_count >= 40:
-        return {"tier": "High Confidence", "label": f"Backed by {suburb_listing_count} comparable listings."}
- 
-    if interval_width_pct <= 35:
-        return {"tier": "Moderate Confidence", "label": "Directional, based on limited local comps."}
- 
-    return {"tier": "Exploratory", "label": "Wide range — treat as a starting point, not a fixed number."}
- 
+def get_confidence_tier(suburb_listing_count: int) -> dict:
+    if suburb_listing_count > 200:
+        return {"tier": "Absolutely Positive", "label": f"Backed by {suburb_listing_count} listings."}
+
+    if suburb_listing_count > 100:
+        return {"tier": "Significant Assurance", "label": f"Backed by {suburb_listing_count} listings."}
+
+    if suburb_listing_count > 30:
+        return {"tier": "Directionally Correct", "label": f"Backed by {suburb_listing_count} listings."}
+
+    if suburb_listing_count > 5:
+        return {"tier": "Limited Assurance", "label": f"Backed by {suburb_listing_count} listings."}
+
+    return {"tier": "Significant Doubt", "label": "Wide range — treat as a starting point, not a fixed number."}
  
 def predict_with_bounds(input_encoded: pd.DataFrame):
     """
@@ -247,15 +272,30 @@ def predict_with_bounds(input_encoded: pd.DataFrame):
     interval_width_pct = ((upper_price - lower_price) / point_price) * 100 if point_price > 0 else 0
  
     return point_price, lower_price, upper_price, interval_width_pct
- 
+
+
+def encode_with_label_encoders(df: pd.DataFrame, encoders: dict) -> pd.DataFrame:
+    df = df.copy()
+    for col, enc in encoders.items():
+        if col in df.columns:
+            known_classes = set(enc.classes_)
+            fallback = enc.classes_[0]
+            df[col] = df[col].astype(str).apply(lambda x: x if x in known_classes else fallback)
+            df[col] = enc.transform(df[col])
+    return df
+
+
 # ==========================================
 # ENDPOINTS
 # ==========================================
  
 @app.post("/predict")
 def predict_price(prop: PropertyInput):
-    location_data = lookup_db[lookup_db['location'].str.lower() == prop.location.lower()]
- 
+    clean_input_location = prop.location.lower().strip()
+
+    location_data = lookup_db[
+        lookup_db['location'].astype(str).str.lower().str.strip() == clean_input_location
+    ]
     if location_data.empty:
         return {
             "message": "Error: Location not found in database. Please check the suburb name and try again."
@@ -274,7 +314,11 @@ def predict_price(prop: PropertyInput):
         'location': clean_location,
         'proptype': clean_proptype,
         'lease_term': clean_lease,
-        'has_pool': int(prop.has_Pool),
+        'has_pool': int(prop.has_pool),
+        'is_gated': int(prop.is_gated),
+        'has_garden': int(prop.has_garden),
+        'mention_renovation': int(prop.mentions_renovated),
+        'mention_luxury': int(prop.mentions_luxury),
         'has_internet': int(prop.has_internet),
         'is_furnished': int(prop.is_furnished),
         'has_backup': int(prop.has_backup),
@@ -282,12 +326,10 @@ def predict_price(prop: PropertyInput):
         'has_sercurity': int(prop.has_sercurity),
         'has_ocean_view': int(prop.has_ocean_view),
         'has_mountain_view':int(prop.has_mountain_view),
-        'is_modern':int(prop.is_modern),
         "macro_suburb": location_data['macro_suburb'].values[0], 
         "property_percentile": location_data['property_percentile'].values[0], 
         "safety_score": location_data['safety_score'].values[0], 
         "school_count": location_data['school_count'].values[0], 
-        "risk_profile": location_data['risk_profile'].values[0], 
         "region": location_data['region'].values[0], 
         "healthcare_facilities_5km": location_data['healthcare_facilities_5km'].values[0], 
         "civic_responsiveness_percentile": location_data['civic_responsiveness_percentile'].values[0], 
@@ -295,19 +337,15 @@ def predict_price(prop: PropertyInput):
         "median_gv": location_data['median_gv'].values[0]
     }])
  
-    input_encoded = pd.get_dummies(input_df)
+    input_encoded = encode_with_label_encoders(input_df, label_encoders)
     expected_columns = mod4.feature_names_in_
     input_encoded = input_encoded.reindex(columns=expected_columns, fill_value=0)
- 
-    # PIM — CHANGED: was `mod4.predict(...)` + flat `* 0.85` / `* 1.15`.
-    # Now pulls real point + lower + upper from the three trained models.
+    
     actual_rands, lower_price, high_price, interval_width_pct = predict_with_bounds(input_encoded)
  
-    # PIM — NEW: suburb comp density, feeds the confidence tier below.
-    # Now an O(1) dict lookup against a startup-time precomputed count,
-    # and NaN-safe — a missing/dirty location resolves to 0, not a crash.
+    
     suburb_listing_count = get_suburb_listing_count(prop.location)
-    confidence = get_confidence_tier(interval_width_pct, suburb_listing_count)
+    confidence = get_confidence_tier(suburb_listing_count)
  
     deal_category = get_deal_status(actual_rands, prop.asking_price)
  
@@ -341,7 +379,8 @@ def predict_price(prop: PropertyInput):
         "price_diff": round(price_difference, 2),
         "percent_diff": round(percentage_difference, 2),
         "market_pulse": pulse_array,
-        "city_pulse": city_pulse_array  
+        "city_pulse": city_pulse_array, 
+        'suburb_listing_count': suburb_listing_count
     }
  
 @app.get("/api/training-listings")
@@ -358,6 +397,7 @@ def get_recent_map_listings():
  
         # 2. Convert to DataFrame safely to do fast math
         df = pd.DataFrame(data_list)
+        df = enforce_dtypes(df)
         df['price'] = pd.to_numeric(df['price'], errors='coerce')
         df['floor'] = pd.to_numeric(df['floor'], errors='coerce')
  
@@ -369,9 +409,7 @@ def get_recent_map_listings():
         # ==========================================
         
         # A. One-hot encode the entire dataframe at once
-        df_encoded = pd.get_dummies(df)
-        
-        # B. Force strict alignment with the model's actual 27 training columns
+        df_encoded = encode_with_label_encoders(df, label_encoders)
         expected_columns = mod4.feature_names_in_
         df_encoded = df_encoded.reindex(columns=expected_columns, fill_value=0)
  
@@ -489,8 +527,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             return {"suburb": suburb, "sub_count": 0, "sub_arb": 0, "sub_rent": 0, "sub_score": 0, "sub_square": 0}
             
         df = pd.DataFrame(response.data)
- 
-        # Clean numerical columns safely
+        df = enforce_dtypes(df)
         df['price'] = pd.to_numeric(df['price'], errors='coerce')
         df['floor'] = pd.to_numeric(df['floor'], errors='coerce')
         df['beds'] = pd.to_numeric(df['beds'], errors='coerce')
@@ -512,10 +549,9 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             three_bed = int((sub_df['beds'] == 3).sum())
  
             # Predict only on the suburb subset
-            df_encoded = pd.get_dummies(sub_df)
+            df_encoded = encode_with_label_encoders(sub_df, label_encoders)
             expected_columns = mod4.feature_names_in_
             df_encoded = df_encoded.reindex(columns=expected_columns, fill_value=0)
- 
             sub_df['log_pred'] = mod4.predict(df_encoded)
             sub_df['predicted_price'] = np.exp(sub_df['log_pred'])
             sub_df['actual_price'] = np.exp(sub_df['price']) 

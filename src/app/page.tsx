@@ -223,7 +223,13 @@ export default function VoloraPlatform() {
     { label: 'Ocean View', value: 'has_ocean_view' },
     { label: 'Mountain View', value: 'has_mountain_view' },
     { label: '24/hr Security', value: 'has_sercurity' },
-    { label: 'Upgraded', value: 'is_modern' },
+    { label: ' Recently Renovated', value: 'mentions_renovated' },
+    { label: 'Luxury Status', value: 'mentions_luxury' },
+    { label: 'Garden', value: 'has_garden' },
+    { label: 'Gated Community', value: 'is_gated' }
+
+    
+
   ];
 
   // 6. FETCH LIVE MAP DATA FROM FASTAPI
@@ -367,7 +373,7 @@ export default function VoloraPlatform() {
         floor: floor,
         gar: gar,
         lease_term: lease_term,
-        has_Pool: amenities.includes('has_pool'),
+        has_pool: amenities.includes('has_pool'),
         is_furnished: amenities.includes('is_furnished'),
         has_internet: amenities.includes('has_internet'),
         has_sercurity: amenities.includes('has_sercurity'),
@@ -375,7 +381,10 @@ export default function VoloraPlatform() {
         is_HouseShare: amenities.includes('is_HouseShare'),
         has_ocean_view: amenities.includes('has_ocean_view'),
         has_mountain_view: amenities.includes('has_mountain_view'),
-        is_modern: amenities.includes('is_modern'),
+        is_gated: amenities.includes('is_gated'), 
+        mentions_renovated: amenities.includes('mentions_renovated'),
+        mentions_luxury: amenities.includes('mentions_luxury'), 
+        has_garden: amenities.includes('has_garden'),    
         asking_price: askingPrice || 0
       };
 
@@ -833,7 +842,7 @@ export default function VoloraPlatform() {
                       <Checkbox.Group style={{ width: '100%' }} value={amenities} onChange={(v) => setAmenities(v as string[])}>
                         <Row>
                           {amenityOptions.map((option) => (
-                            <Col span={8} key={option.value} className="mb-3">
+                            <Col span={12} key={option.value} className="mb-3">
                               <Checkbox value={option.value}><span className="text-slate-300 text-sm">{option.label}</span></Checkbox>
                             </Col>
                           ))}
