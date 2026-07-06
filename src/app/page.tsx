@@ -1,19 +1,4 @@
 "use client"; // Enables dynamic clicking and tab state
-import { 
-  RiSearchLine, 
-  RiNotification3Line, 
-  RiSettings3Line, 
-  RiDashboardLine, 
-  RiMoneyDollarCircleLine, 
-  RiBuilding4Line, 
-  RiMapPinLine, 
-  RiFileChartLine, 
-  RiUserLine,
-  RiArrowUpLine,
-  RiArrowDownLine,
-  RiCheckboxCircleLine
-} from '@remixicon/react';
-import { AreaChart, BarChart, DonutChart } from '@tremor/react';
 import {
   Tabs,
   TabsContent,
@@ -24,8 +9,27 @@ import { KineticText } from "@/components/ui/kinetic-text";
 import { MorphingText } from "@/components/ui/morphing-text";
 import { locations } from '@/lib/location';
 import { cx } from '@/lib/utils';
-import { RiArrowRightLine, RiCheckLine, RiErrorWarningLine, RiEyeLine, RiLockPasswordFill, RiServerFill, RiUploadFill } from '@remixicon/react';
-import { Card } from '@tremor/react';
+import {
+  RiArrowDownLine,
+  RiArrowRightLine,
+  RiArrowUpLine,
+  RiBuilding4Line,
+  RiCheckboxCircleLine,
+  RiCheckLine,
+  RiDashboardLine,
+  RiErrorWarningLine, RiEyeLine,
+  RiFileChartLine,
+  RiLockPasswordFill,
+  RiMapPinLine,
+  RiMoneyDollarCircleLine,
+  RiNotification3Line,
+  RiSearchLine,
+  RiServerFill,
+  RiSettings3Line,
+  RiUploadFill,
+  RiUserLine
+} from '@remixicon/react';
+import { BarChart, Card, DonutChart } from '@tremor/react';
 import {
   AutoComplete,
   Button,
@@ -228,7 +232,7 @@ export default function VoloraPlatform() {
     { label: 'Garden', value: 'has_garden' },
     { label: 'Gated Community', value: 'is_gated' }
 
-    
+
 
   ];
 
@@ -381,10 +385,10 @@ export default function VoloraPlatform() {
         is_HouseShare: amenities.includes('is_HouseShare'),
         has_ocean_view: amenities.includes('has_ocean_view'),
         has_mountain_view: amenities.includes('has_mountain_view'),
-        is_gated: amenities.includes('is_gated'), 
+        is_gated: amenities.includes('is_gated'),
         mentions_renovated: amenities.includes('mentions_renovated'),
-        mentions_luxury: amenities.includes('mentions_luxury'), 
-        has_garden: amenities.includes('has_garden'),    
+        mentions_luxury: amenities.includes('mentions_luxury'),
+        has_garden: amenities.includes('has_garden'),
         asking_price: askingPrice || 0
       };
 
@@ -1141,7 +1145,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   return (
     <div className="flex h-screen w-full bg-slate-50 font-sans text-slate-900 absolute inset-0 z-50">
-      
+
       {/* 1. SIDEBAR */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
         <div className="h-16 flex items-center px-6 border-b border-slate-100">
@@ -1150,7 +1154,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
             <span className="font-bold text-lg tracking-tight">Valora</span>
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto py-4 px-4 space-y-6">
           <div>
             <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Dashboards</p>
@@ -1159,11 +1163,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                 <button
                   key={item}
                   onClick={() => setActiveMenu(item)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeMenu === item 
-                    ? 'bg-amber-500 text-slate-900 shadow-sm' 
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${activeMenu === item
+                    ? 'bg-amber-500 text-slate-900 shadow-sm'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   {item === 'Analytics' && <RiDashboardLine className="w-4 h-4" />}
                   {item === 'Predictive Valuation' && <RiFileChartLine className="w-4 h-4" />}
@@ -1196,20 +1199,20 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
       {/* 2. MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        
+
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center w-96 relative">
             <RiSearchLine className="w-4 h-4 text-slate-400 absolute left-3" />
-            <input 
-              type="text" 
-              placeholder="Search by Location..." 
+            <input
+              type="text"
+              placeholder="Search by Location..."
               value={locationLookup}
               onChange={(e) => setLocationLookup(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
             />
           </div>
-          
+
           <div className="flex items-center gap-4">
             <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors relative">
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
@@ -1224,10 +1227,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         {/* Scrollable Dashboard Grid */}
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-7xl mx-auto space-y-6">
-            
+
             {/* ROW 1: Hero & Quick Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
+
               {/* Welcome Card (Spans 8) */}
               <Card className="lg:col-span-8 bg-amber-50 border-none shadow-sm flex flex-col md:flex-row items-center justify-between p-6">
                 <div>
@@ -1277,7 +1280,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
             {/* ROW 2: Main Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
+
               {/* Bar Chart (Spans 8) */}
               <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
                 <div className="flex justify-between items-center mb-6">
@@ -1299,7 +1302,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
               {/* Right Side Column (Spans 4) */}
               <div className="lg:col-span-4 flex flex-col gap-6">
-                
+
                 {/* Donut Chart */}
                 <Card className="shadow-sm border-slate-200 p-6 flex-1">
                   <h3 className="text-lg font-bold text-slate-900 mb-1">Portfolio Breakup</h3>
@@ -1325,7 +1328,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
             {/* ROW 3: Data Tables & Area Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
+
               {/* Deals by Location (Spans 8) */}
               <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
                 <h3 className="text-lg font-bold text-slate-900 mb-1">Active Deals by Location</h3>
