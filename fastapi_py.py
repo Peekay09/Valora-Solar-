@@ -107,6 +107,7 @@ class PropertyInput(BaseModel):
     has_mountain_view:bool
     is_gated:bool
     has_garden: bool
+    has_study:bool
     mentions_renovated: bool
     mentions_luxury: bool
     asking_price: float = 0.0
@@ -329,6 +330,7 @@ def predict_price(prop: PropertyInput):
         'lease_term': clean_lease,
         'has_pool': int(prop.has_pool),
         'is_gated': int(prop.is_gated),
+        'has_study': int(prop.has_study),
         'has_garden': int(prop.has_garden),
         'mention_renovation': int(prop.mentions_renovated),
         'mention_luxury': int(prop.mentions_luxury),

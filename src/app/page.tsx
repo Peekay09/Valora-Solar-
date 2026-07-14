@@ -230,7 +230,8 @@ export default function VoloraPlatform() {
     { label: ' Recently Renovated', value: 'mentions_renovated' },
     { label: 'Luxurious/Modern Touches', value: 'mentions_luxury' },
     { label: 'Garden', value: 'has_garden' },
-    { label: 'Gated Community', value: 'is_gated' }
+    { label: 'Gated Community', value: 'is_gated' },
+    { label: 'Study', value: 'has_study' },
 
 
 
@@ -396,6 +397,7 @@ export default function VoloraPlatform() {
         is_furnished: amenities.includes('is_furnished'),
         has_internet: amenities.includes('has_internet'),
         has_sercurity: amenities.includes('has_sercurity'),
+        has_study: amenities.includes('has_study'),
         has_backup: amenities.includes('has_backup'),
         is_HouseShare: amenities.includes('is_HouseShare'),
         has_ocean_view: amenities.includes('has_ocean_view'),
@@ -861,7 +863,7 @@ export default function VoloraPlatform() {
                       <Checkbox.Group style={{ width: '100%' }} value={amenities} onChange={(v) => setAmenities(v as string[])}>
                         <Row>
                           {amenityOptions.map((option) => (
-                            <Col span={12} key={option.value} className="mb-3">
+                            <Col span={8} key={option.value} className="mb-3">
                               <Checkbox value={option.value}><span className="text-slate-300 text-sm">{option.label}</span></Checkbox>
                             </Col>
                           ))}
