@@ -41,7 +41,7 @@ def enforce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     BOOL_COLS = [
     'has_pool', 'has_internet', 'has_sercurity', 'is_furnished', 'has_backup',
     'is_HouseShare', 'has_ocean_view', 'has_mountain_view', 'is_gated', 'has_garden',
-    'mentions_renovated', 'mentions_luxury'
+    'mentions_renovated', 'mentions_luxury', 'has_balcony', 'has_patio'
 ]
     df = df.copy()
     for col in NUMERIC_COLS:
@@ -61,7 +61,7 @@ def enforce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 # Load your institutional-grade model and column structures
 mod4 = joblib.load('mod4_lgbm_model.joblib')
 mod4_columns = joblib.load('mod4_columns.joblib')
-lookup_db2 = supabase.table('FINAL DAILY RENTAL DATA').select('*').limit(50000).execute()
+lookup_db2 = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(50000).execute()
 lookup_db = pd.DataFrame(lookup_db2.data)
 lookup_db = enforce_dtypes(lookup_db)
 lookup_db['price'] = pd.to_numeric(lookup_db['price'], errors='coerce')
@@ -103,6 +103,8 @@ class PropertyInput(BaseModel):
     is_furnished: bool
     has_backup: bool
     is_HouseShare: bool
+    has_balcony: bool
+    has_patio: bool
     has_ocean_view:bool
     has_mountain_view:bool
     is_gated:bool
@@ -321,35 +323,37 @@ def predict_price(prop: PropertyInput):
  
     input_df = pd.DataFrame([{
         'beds': prop.beds,
-        'baths': prop.bath,
-        'erf_size':prop.erf_size,
-        'floor':prop.floor,
-        'gar': prop.gar,
-        'location': clean_location,
-        'proptype': clean_proptype,
-        'lease_term': clean_lease,
-        'has_pool': int(prop.has_pool),
-        'is_gated': int(prop.is_gated),
-        'has_study': int(prop.has_study),
-        'has_garden': int(prop.has_garden),
-        'mention_renovation': int(prop.mentions_renovated),
-        'mention_luxury': int(prop.mentions_luxury),
-        'has_internet': int(prop.has_internet),
-        'is_furnished': int(prop.is_furnished),
-        'has_backup': int(prop.has_backup),
-        'is_HouseShare': int(prop.is_HouseShare), 
-        'has_sercurity': int(prop.has_sercurity),
-        'has_ocean_view': int(prop.has_ocean_view),
-        'has_mountain_view':int(prop.has_mountain_view),
-        "macro_suburb": location_data['macro_suburb'].values[0], 
-        "property_percentile": location_data['property_percentile'].values[0], 
-        "safety_score": location_data['safety_score'].values[0], 
-        "school_count": location_data['school_count'].values[0], 
-        "region": location_data['region'].values[0], 
-        "healthcare_facilities_5km": location_data['healthcare_facilities_5km'].values[0], 
-        "civic_responsiveness_percentile": location_data['civic_responsiveness_percentile'].values[0], 
-        "taxi_routes": location_data['taxi_routes'].values[0], 
-        "median_gv": location_data['median_gv'].values[0]
+    'bath': prop.bath,              # was 'baths'
+    'erf_size': prop.erf_size,
+    'floor': prop.floor,
+    'gar': prop.gar,
+    'location': clean_location,
+    'proptype': clean_proptype,
+    'lease_term': clean_lease,
+    'has_pool': int(prop.has_pool),
+    'is_gated': int(prop.is_gated),
+    'has_study': int(prop.has_study),
+    'has_garden': int(prop.has_garden),
+    'mentions_renovated': int(prop.mentions_renovated),   # was 'mention_renovation'
+    'mentions_luxury': int(prop.mentions_luxury),         # was 'mention_luxury'
+    'has_balcony': int(prop.has_balcony),                 # was missing
+    'has_patio': int(prop.has_patio),                     # was missing
+    'has_internet': int(prop.has_internet),
+    'is_furnished': int(prop.is_furnished),
+    'has_backup': int(prop.has_backup),
+    'is_HouseShare': int(prop.is_HouseShare),
+    'has_sercurity': int(prop.has_sercurity),
+    'has_ocean_view': int(prop.has_ocean_view),
+    'has_mountain_view': int(prop.has_mountain_view),
+    "macro_suburb": location_data['macro_suburb'].values[0],
+    "property_percentile": location_data['property_percentile'].values[0],
+    "safety_score": location_data['safety_score'].values[0],
+    "school_count": location_data['school_count'].values[0],
+    "region": location_data['region'].values[0],
+    "healthcare_facilities_5km": location_data['healthcare_facilities_5km'].values[0],
+    "civic_responsiveness_percentile": location_data['civic_responsiveness_percentile'].values[0],
+    "taxi_routes": location_data['taxi_routes'].values[0],
+    "median_gv": location_data['median_gv'].values[0]
     }])
  
     input_encoded = encode_with_label_encoders(input_df, label_encoders)

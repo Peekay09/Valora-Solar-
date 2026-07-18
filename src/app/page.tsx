@@ -232,8 +232,8 @@ export default function VoloraPlatform() {
     { label: 'Garden', value: 'has_garden' },
     { label: 'Gated Community', value: 'is_gated' },
     { label: 'Study', value: 'has_study' },
-
-
+    { label: 'Balcony', value: 'has_balcony' },
+    { label: 'Patio', value: 'has_patio' }
 
   ];
 
@@ -406,6 +406,8 @@ export default function VoloraPlatform() {
         mentions_renovated: amenities.includes('mentions_renovated'),
         mentions_luxury: amenities.includes('mentions_luxury'),
         has_garden: amenities.includes('has_garden'),
+        has_balcony: amenities.includes('has_balcony'),
+        has_patio: amenities.includes('has_patio'),
         asking_price: askingPrice || 0
       };
 
