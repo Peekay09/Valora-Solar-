@@ -407,7 +407,7 @@ def get_recent_map_listings():
     """Grabs a randomized pool of recent listings LIVE from Supabase and calculates true ML arbitrage stats."""
     try:
         # 1. Grab a large pool (300 rows) safely
-        response = supabase.table('FINAL DAILY RENTAL DATA').select('*').execute()
+        response = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(50000).execute()
         data_list = response.data
         num_df = len(data_list)
  
@@ -538,7 +538,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
  
     try:
         # 2. Fetch Data
-        response = supabase.table('FINAL DAILY RENTAL DATA').select('*').execute()
+        response = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(50000).execute()
         
         # Defensive check: ensure data exists
         if not response.data:
