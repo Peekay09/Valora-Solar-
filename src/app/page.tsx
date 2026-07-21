@@ -1199,7 +1199,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     { id: 4, type: 'Valuation Run', location: 'Camps Bay, Villa', amount: 'R 85,000', isPositive: true },
   ];
 
-   const [locations, setLocations] = useState<{ value: string }[]>([]);
+  const [locations, setLocations] = useState<{ value: string }[]>([]);
 
 
   const handleAnalyzeUrl = async () => {
@@ -1227,7 +1227,9 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
     try {
       // 1. Send URL to R (Plumber)
-      const rResponse = await fetch('http://localhost:8080/clean-url', {
+      // FIX: Changed localhost to 127.0.0.1. Next.js/Node often resolves localhost to IPv6 (::1), 
+      // but your Plumber server is bound to IPv4 (127.0.0.1) as seen in your terminal screenshot.
+      const rResponse = await fetch('http://127.0.0.1:8080/clean-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1262,9 +1264,9 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         is_furnished: propertyData.is_furnished || 0,
         has_pool: propertyData.has_pool || 0,
         has_backup: propertyData.has_backup || 0,
-        floor_level: propertyData.floor_level || 0,
-        erf_size: propertyData.erf || 0,
-        floor_size: propertyData.floorspan || 0,
+        erf_size: propertyData.erf_size || 0,  // FIXED
+        floor_size: propertyData.floor || 0,   // FIXED
+        floor: propertyData.floor || 0,
         has_garden: propertyData.has_garden || 0,
         lease_term: propertyData.lease || 'Long Term',
         has_sercurity: propertyData.has_sercurity || 0,
@@ -1280,10 +1282,11 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         is_gated: propertyData.is_gated || 0,
         has_balcony: propertyData.has_balcony || 0,
         has_patio: propertyData.has_patio || 0,
-        deposit: propertyData.deposit || 0,
+        deposit: propertyData.deposit ? String(propertyData.deposit) : "0",
       };
 
-      const pythonResponse = await fetch('http://localhost:8000/predict-quick', {
+      // FIX: Changed localhost to 127.0.0.1 here as well to ensure it reliably hits FastAPI
+      const pythonResponse = await fetch('http://127.0.0.1:8000/predict-quick', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(pythonPayload),
@@ -1326,7 +1329,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     } catch (error: any) {
       console.error("Analysis Pipeline Error:", error);
       // This will now pop up with the EXACT cause of the crash (e.g., Python Engine Failed: 422 Unprocessable Entity)
-      alert(`Pipeline Failed: \n\n${error.message}`); 
+      alert(`Pipeline Failed: \n\n${error.message}`);
     } finally {
       setIsAnalyzing(false);
     }

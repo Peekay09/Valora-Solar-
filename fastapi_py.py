@@ -688,28 +688,26 @@ class QuickAnalyzeInput(BaseModel):
     has_pool: int = 0
     has_backup: int = 0
     floor_level: float = 0
-    erf_size: float = 0
     floor_size: float = 0
+    floor: float = 0
+    erf_size: float = 0
     has_garden: int = 0
-    lease_term: str = 'Long Term' # Fixed to match React
+    lease_term: str = 'Long Term' 
     has_sercurity: int = 0
     has_mountain_view: int = 0
     has_ocean_view: int = 0
     has_internet: int = 0
-    is_top_floor: int = 0         # Added missing field
-    near_promenade: int = 0       # Added missing field
+    is_top_floor: int = 0        
+    near_promenade: int = 0      
     has_study: int = 0
     mentions_renovated: int = 0
     mentions_luxury: int = 0
-    mentions_new_build: int = 0   # Added missing field
+    mentions_new_build: int = 0  
     is_HouseShare: int = 0
     is_gated: int = 0
-    has_balcony: int = 0          # Added missing field
-    has_patio: int = 0            # Added missing field
-    deposit: float = 0
-
-
-    
+    has_balcony: int = 0         
+    has_patio: int = 0           
+    deposit: str = "0"           # FIXED: Matched type hint to string
 
 
 @app.post("/predict-quick")
@@ -744,30 +742,30 @@ def predict_quick_price(prop: QuickAnalyzeInput):
         'beds': prop.beds,
         'bath': prop.bath,
         'erf_size': prop.erf_size,
-        'floor': prop.floor_level,
+        'floor': prop.floor,
         'floor_size': prop.floor_size,
         'gar': prop.gar,
         'location': clean_location,
         'proptype': clean_proptype,
         'lease_term': prop.lease_term,
         'has_pool': prop.has_pool,
-        'is_gated': prop.is_gated,                     # Fixed from 0
-        'has_study': prop.has_study,                   # Fixed from 0
-        'has_garden': prop.has_garden,                 # Fixed from 0
-        'mentions_renovated': prop.mentions_renovated, # Fixed from 0
-        'mentions_luxury': prop.mentions_luxury,       # Fixed from 0
-        'mentions_new_build': prop.mentions_new_build, # Fixed from 0
-        'has_balcony': prop.has_balcony,               # Fixed from 0
-        'has_patio': prop.has_patio,                   # Fixed from 0
+        'is_gated': prop.is_gated,                     
+        'has_study': prop.has_study,                   
+        'has_garden': prop.has_garden,                 
+        'mentions_renovated': prop.mentions_renovated, 
+        'mentions_luxury': prop.mentions_luxury,       
+        'mentions_new_build': prop.mentions_new_build, 
+        'has_balcony': prop.has_balcony,               
+        'has_patio': prop.has_patio,                   
         'has_internet': prop.has_internet,                         
         'is_furnished': prop.is_furnished,
         'has_backup': prop.has_backup,
-        'is_HouseShare': prop.is_HouseShare,           # Fixed from 0
-        'has_sercurity': prop.has_sercurity,           # Fixed from 0
-        'has_ocean_view': prop.has_ocean_view,         # Fixed from 0
-        'has_mountain_view': prop.has_mountain_view,   # Fixed from 0
-        'is_top_floor': prop.is_top_floor,             # Fixed from 0
-        'near_promenade': prop.near_promenade,         # Fixed from 0
+        'is_HouseShare': prop.is_HouseShare,           
+        'has_sercurity': prop.has_sercurity,           
+        'has_ocean_view': prop.has_ocean_view,         
+        'has_mountain_view': prop.has_mountain_view,   
+        'is_top_floor': prop.is_top_floor,             
+        'near_promenade': prop.near_promenade,         
         "macro_suburb": location_data['macro_suburb'].values[0],
         "property_percentile": location_data['property_percentile'].values[0],
         "safety_score": location_data['safety_score'].values[0],
@@ -778,7 +776,9 @@ def predict_quick_price(prop: QuickAnalyzeInput):
         "taxi_routes": location_data['taxi_routes'].values[0],
         "median_gv": location_data['median_gv'].values[0]
     }])
-
+    
+    print("MODEL INPUTS:", input_df.iloc[0].to_dict())
+    
     # 4. Predict
     input_encoded = encode_with_label_encoders(input_df, label_encoders)
     expected_columns = mod4.feature_names_in_
@@ -805,5 +805,3 @@ def predict_quick_price(prop: QuickAnalyzeInput):
         "estimated_value": round(actual_rands, 2),
         "deal_score": deal_score
     }
- 
-
