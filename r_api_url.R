@@ -1,7 +1,9 @@
 library(plumber)
 library(dplyr)
 library(stringr)
-
+library(rvest)   
+library(tidyr)
+library(readr)
 
 
 #* @filter cors
@@ -15,7 +17,7 @@ function(res) {
 #* Scrape and clean Property24 data
 #* @param url
 #* @post /clean-url
-function(url, res) {
+function(url, suburb="", macro_suburb="", region="", res) {
   
   if (missing(url)) {
     return(list(status = "Success"))
@@ -133,4 +135,3 @@ function(url, res) {
 }
 
 
-view(df_url)

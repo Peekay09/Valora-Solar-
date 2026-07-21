@@ -15,9 +15,14 @@ import {
   RiBuilding4Line,
   RiCheckboxCircleLine,
   RiCheckLine,
+  RiContactsBook3Line,
   RiDashboardLine,
+  RiDeleteBinLine,
   RiErrorWarningLine, RiEyeLine,
   RiFileChartLine,
+  RiFlashlightLine,
+  RiLinkM,
+  RiLoader4Line,
   RiLockPasswordFill,
   RiMapPinLine,
   RiMoneyDollarCircleLine,
@@ -1125,10 +1130,42 @@ export default function VoloraPlatform() {
     </div>
   );
 }
-
 const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/locations")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch locations");
+        return res.json();
+      })
+      .then((data) => {
+        const formatted = (data.locations || []).map((loc: string) => ({ value: loc }));
+        setLocations(formatted);
+      })
+      .catch((error) => {
+        console.error("Location fetch error:", error);
+      });
+  }, []);
+
   const [activeMenu, setActiveMenu] = useState('Analytics');
   const [locationLookup, setLocationLookup] = useState('');
+  const [agent_suburb, setagent_Suburb] = useState('');
+
+  const [propUrl, setPropUrl] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<{
+    type: string;
+    asking_price: number;
+    volora_value: number;
+    score: number;
+  } | null>(null);
+
+  // We keep the initial mock data, but this will now dynamically grow when a URL is analyzed
+  const [savedBook, setSavedBook] = useState([
+    { id: 1, address: "14 Victoria Rd, Bantry Bay", type: "Villa", asking: 45000, volora: 52000, score: 88, status: "Negotiating" },
+    { id: 2, address: "201 The Sentinel, CBD", type: "2 Bed Apt", asking: 18000, volora: 16500, score: 42, status: "Monitoring" },
+    { id: 3, address: "12 Kloof St, Gardens", type: "Retail", asking: 35000, volora: 41000, score: 79, status: "Offer Placed" },
+  ]);
 
   // --- Mock Data for Tremor Charts ---
   const revenueData = [
@@ -1162,6 +1199,144 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     { id: 4, type: 'Valuation Run', location: 'Camps Bay, Villa', amount: 'R 85,000', isPositive: true },
   ];
 
+   const [locations, setLocations] = useState<{ value: string }[]>([]);
+
+
+  const handleAnalyzeUrl = async () => {
+    if (!propUrl.includes('property24.com')) {
+      alert("Please enter a valid Property24 URL.");
+      return;
+    }
+
+    if (!agent_suburb) {
+      alert("Please select a suburb from the dropdown first.");
+      return;
+    }
+
+    // Safely handle locations since your useEffect only fetches the 'value'
+    const locationMatches = locations.filter((loc) => loc.value === agent_suburb);
+    if (locationMatches.length === 0) {
+      alert("Location details not found in the database.");
+      return;
+    }
+
+    const computedMacro = (locationMatches[0] as any).macro_suburb || "";
+    const computedRegion = (locationMatches[0] as any).region || "";
+
+    setIsAnalyzing(true);
+
+    try {
+      // 1. Send URL to R (Plumber)
+      const rResponse = await fetch('http://localhost:8080/clean-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: propUrl,
+          suburb: agent_suburb,
+          macro_suburb: computedMacro,
+          region: computedRegion
+        }),
+      });
+
+      if (!rResponse.ok) {
+        const errDetails = await rResponse.text();
+        throw new Error(`R Pipeline failed: ${errDetails}`);
+      }
+
+      const cleanDataArray = await rResponse.json();
+      const propertyData = cleanDataArray[0];
+
+      if (!propertyData) throw new Error("R Pipeline returned empty data");
+
+      // 2. Send to Python - We MUST add "|| 0" fallbacks. 
+      // If R returns 'null' for a missing amenity, it will crash Python's strict validation.
+      const pythonPayload = {
+        suburb: agent_suburb,
+        macro_suburb: computedMacro,
+        region: computedRegion,
+        asking_price: propertyData.price || 0,
+        beds: propertyData.beds || 0,
+        bath: propertyData.bath || 0,
+        gar: propertyData.gar || 0,
+        property_type: propertyData.type || "House",
+        is_furnished: propertyData.is_furnished || 0,
+        has_pool: propertyData.has_pool || 0,
+        has_backup: propertyData.has_backup || 0,
+        floor_level: propertyData.floor_level || 0,
+        erf_size: propertyData.erf || 0,
+        floor_size: propertyData.floorspan || 0,
+        has_garden: propertyData.has_garden || 0,
+        lease_term: propertyData.lease || 'Long Term',
+        has_sercurity: propertyData.has_sercurity || 0,
+        has_mountain_view: propertyData.has_mountain_view || 0,
+        has_ocean_view: propertyData.has_ocean_view || 0,
+        is_top_floor: propertyData.is_top_floor || 0,
+        near_promenade: propertyData.near_promenade || 0,
+        has_study: propertyData.has_study || 0,
+        mentions_renovated: propertyData.mentions_renovated || 0,
+        mentions_luxury: propertyData.mentions_luxury || 0,
+        mentions_new_build: propertyData.mentions_new_build || 0,
+        is_HouseShare: propertyData.is_HouseShare || 0,
+        is_gated: propertyData.is_gated || 0,
+        has_balcony: propertyData.has_balcony || 0,
+        has_patio: propertyData.has_patio || 0,
+        deposit: propertyData.deposit || 0,
+      };
+
+      const pythonResponse = await fetch('http://localhost:8000/predict-quick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pythonPayload),
+      });
+
+      if (!pythonResponse.ok) {
+        const errDetails = await pythonResponse.text();
+        throw new Error(`Python ML Engine failed: ${errDetails}`);
+      }
+
+      const predictionData = await pythonResponse.json();
+
+      // Catch the custom dictionary error returned by Python if the suburb isn't in lookup_db
+      if (predictionData.message && predictionData.message.includes("Error")) {
+        throw new Error(predictionData.message);
+      }
+
+      // 3. Keep standard analysis result state updated
+      setAnalysisResult({
+        type: `${propertyData.beds || 0} Bed ${propertyData.type || 'Property'}`,
+        asking_price: propertyData.price || 0,
+        volora_value: predictionData.estimated_value,
+        score: predictionData.deal_score,
+      });
+
+      // 4. DYNAMICALLY ADD TO SAVED BOOK TABLE
+      const newDeal = {
+        id: Date.now(),
+        address: `New Listing in ${agent_suburb}`,
+        type: `${propertyData.beds || 0} Bed ${propertyData.type || 'Property'}`,
+        asking: propertyData.price || 0,
+        volora: predictionData.estimated_value,
+        score: predictionData.deal_score,
+        status: "Newly Analyzed"
+      };
+
+      setSavedBook((prevBook) => [newDeal, ...prevBook]);
+      setPropUrl('');
+
+    } catch (error: any) {
+      console.error("Analysis Pipeline Error:", error);
+      // This will now pop up with the EXACT cause of the crash (e.g., Python Engine Failed: 422 Unprocessable Entity)
+      alert(`Pipeline Failed: \n\n${error.message}`); 
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  function setsuburb(value: string): void {
+    setLocationLookup(value);
+    setagent_Suburb(value);
+  }
+
   return (
     <div className="flex h-screen w-full bg-slate-50 font-sans text-slate-900 absolute inset-0 z-50">
 
@@ -1178,18 +1353,18 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
           <div>
             <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Dashboards</p>
             <div className="space-y-1">
-              {['Analytics', 'Predictive Valuation', 'Saved Deals'].map((item) => (
+              {['Analytics', 'Predictive Valuation', 'Saved Deals', 'Your Book'].map((item) => (
                 <button
                   key={item}
                   onClick={() => setActiveMenu(item)}
                   className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${activeMenu === item
                     ? 'bg-amber-500 text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
                 >
                   {item === 'Analytics' && <RiDashboardLine className="w-4 h-4" />}
                   {item === 'Predictive Valuation' && <RiFileChartLine className="w-4 h-4" />}
                   {item === 'Saved Deals' && <RiMoneyDollarCircleLine className="w-4 h-4" />}
+                  {item === 'Your Book' && <RiContactsBook3Line className="w-4 h-4" />}
                   {item}
                 </button>
               ))}
@@ -1201,6 +1376,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
             <div className="space-y-1">
               <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
                 <RiMapPinLine className="w-4 h-4" /> Lookup by Location
+
               </button>
               <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
                 <RiBuilding4Line className="w-4 h-4" /> Market Pulse
@@ -1222,13 +1398,16 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center w-96 relative">
-            <RiSearchLine className="w-4 h-4 text-slate-400 absolute left-3" />
-            <input
-              type="text"
-              placeholder="Search by Location..."
-              value={locationLookup}
-              onChange={(e) => setLocationLookup(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+            <RiSearchLine className="w-4 h-4 text-slate-400 absolute left-3 z-10" />
+            <AutoComplete
+              className="w-64 pl-8"
+              options={locations}
+              value={agent_suburb}
+              onChange={setsuburb}
+              placeholder="Type a location..."
+              filterOption={(inputValue, option) =>
+                option?.value?.toUpperCase().includes(inputValue.toUpperCase()) ?? false
+              }
             />
           </div>
 
@@ -1246,149 +1425,252 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         {/* Scrollable Dashboard Grid */}
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-7xl mx-auto space-y-6">
+            {activeMenu === 'Analytics' && (
+              <>
+                {/* ROW 1: Hero & Quick Stats */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {/* ROW 1: Hero & Quick Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-              {/* Welcome Card (Spans 8) */}
-              <Card className="lg:col-span-8 bg-amber-50 border-none shadow-sm flex flex-col md:flex-row items-center justify-between p-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-1">Volora Analytics Dashboard</h2>
-                  <p className="text-slate-600 text-sm mb-6">Here is what is happening across your tracked locations today.</p>
-                  <div className="flex gap-8">
+                  {/* Welcome Card (Spans 8) */}
+                  <Card className="lg:col-span-8 bg-amber-50 border-none shadow-sm flex flex-col md:flex-row items-center justify-between p-6">
                     <div>
-                      <p className="text-3xl font-bold text-slate-900">R 2.4M</p>
-                      <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1">
-                        <RiArrowUpLine className="w-3 h-3" /> +12% Total Arbitrage Value
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold text-slate-900">42</p>
-                      <p className="text-xs font-medium text-amber-600 mt-1">Active Deal Alerts</p>
-                    </div>
-                  </div>
-                </div>
-                {/* Illustration Placeholder */}
-                <div className="hidden md:flex w-48 h-32 bg-amber-200/50 rounded-xl border border-amber-300/50 items-center justify-center">
-                  <RiBuilding4Line className="w-12 h-12 text-amber-500" />
-                </div>
-              </Card>
-
-              {/* Weekly Stat (Spans 2) */}
-              <Card className="lg:col-span-2 shadow-sm border-slate-200 p-6 flex flex-col justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-500">Avg Market Variance</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-2">- 14.5%</p>
-                </div>
-                <div className="text-xs font-medium text-emerald-600 flex items-center gap-1 mt-4">
-                  <RiArrowDownLine className="w-3 h-3" /> Underpriced trend
-                </div>
-              </Card>
-
-              {/* Scraped Listings (Spans 2) */}
-              <Card className="lg:col-span-2 shadow-sm border-slate-200 p-6 flex flex-col justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-500">Listings Analyzed</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-2">1,204</p>
-                </div>
-                <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-4">
-                  Updated 10 mins ago
-                </div>
-              </Card>
-            </div>
-
-            {/* ROW 2: Main Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-              {/* Bar Chart (Spans 8) */}
-              <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">Valuation Tracking</h3>
-                    <p className="text-sm text-slate-500">Estimated value vs Asking price</p>
-                  </div>
-                </div>
-                <BarChart
-                  className="h-72 mt-4"
-                  data={revenueData}
-                  index="date"
-                  categories={["Volora Value", "Asking Price"]}
-                  colors={["amber", "slate"]}
-                  yAxisWidth={48}
-                  showAnimation={true}
-                />
-              </Card>
-
-              {/* Right Side Column (Spans 4) */}
-              <div className="lg:col-span-4 flex flex-col gap-6">
-
-                {/* Donut Chart */}
-                <Card className="shadow-sm border-slate-200 p-6 flex-1">
-                  <h3 className="text-lg font-bold text-slate-900 mb-1">Portfolio Breakup</h3>
-                  <p className="text-sm text-slate-500 mb-6">Current deal distribution</p>
-                  <div className="flex items-center justify-center">
-                    <DonutChart
-                      className="h-40"
-                      data={portfolioBreakup}
-                      category="value"
-                      index="name"
-                      colors={["emerald", "amber", "rose"]}
-                      showLabel={true}
-                    />
-                  </div>
-                  <div className="mt-6 flex justify-between items-center px-4">
-                    <p className="text-2xl font-bold text-slate-900">45%</p>
-                    <p className="text-sm font-medium text-emerald-600">Bargain Deals</p>
-                  </div>
-                </Card>
-              </div>
-
-            </div>
-
-            {/* ROW 3: Data Tables & Area Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-              {/* Deals by Location (Spans 8) */}
-              <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
-                <h3 className="text-lg font-bold text-slate-900 mb-1">Active Deals by Location</h3>
-                <p className="text-sm text-slate-500 mb-6">Top performing analytical hubs</p>
-                <BarChart
-                  className="h-64"
-                  data={locationData}
-                  index="Location"
-                  categories={["Active Deals"]}
-                  colors={["amber"]}
-                  layout="vertical"
-                  showLegend={false}
-                  showAnimation={true}
-                />
-              </Card>
-
-              {/* Recent Transactions List (Spans 4) */}
-              <Card className="lg:col-span-4 shadow-sm border-slate-200 p-6">
-                <h3 className="text-lg font-bold text-slate-900 mb-6">Recent Activity</h3>
-                <div className="space-y-6">
-                  {recentTransactions.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${tx.isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
-                          <RiCheckboxCircleLine className="w-4 h-4" />
+                      <h2 className="text-2xl font-bold text-slate-900 mb-1">Volora Analytics Dashboard</h2>
+                      <p className="text-slate-600 text-sm mb-6">Here is what is happening across your tracked locations today.</p>
+                      <div className="flex gap-8">
+                        <div>
+                          <p className="text-3xl font-bold text-slate-900">R 2.4M</p>
+                          <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1">
+                            <RiArrowUpLine className="w-3 h-3" /> +12% Total Arbitrage Value
+                          </p>
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-900">{tx.type}</p>
-                          <p className="text-xs text-slate-500">{tx.location}</p>
+                          <p className="text-3xl font-bold text-slate-900">42</p>
+                          <p className="text-xs font-medium text-amber-600 mt-1">Active Deal Alerts</p>
                         </div>
                       </div>
-                      <p className={`text-sm font-bold ${tx.isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
-                        {tx.amount}
-                      </p>
                     </div>
-                  ))}
+                    {/* Illustration Placeholder */}
+                    <div className="hidden md:flex w-48 h-32 bg-amber-200/50 rounded-xl border border-amber-300/50 items-center justify-center">
+                      <RiBuilding4Line className="w-12 h-12 text-amber-500" />
+                    </div>
+                  </Card>
+
+                  {/* Weekly Stat (Spans 2) */}
+                  <Card className="lg:col-span-2 shadow-sm border-slate-200 p-6 flex flex-col justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Avg Market Variance</p>
+                      <p className="text-2xl font-bold text-slate-900 mt-2">- 14.5%</p>
+                    </div>
+                    <div className="text-xs font-medium text-emerald-600 flex items-center gap-1 mt-4">
+                      <RiArrowDownLine className="w-3 h-3" /> Underpriced trend
+                    </div>
+                  </Card>
+
+                  {/* Scraped Listings (Spans 2) */}
+                  <Card className="lg:col-span-2 shadow-sm border-slate-200 p-6 flex flex-col justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Listings Analyzed</p>
+                      <p className="text-2xl font-bold text-slate-900 mt-2">1,204</p>
+                    </div>
+                    <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-4">
+                      Updated 10 mins ago
+                    </div>
+                  </Card>
                 </div>
-              </Card>
 
-            </div>
+                {/* ROW 2: Main Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
+                  {/* Bar Chart (Spans 8) */}
+                  <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">Valuation Tracking</h3>
+                        <p className="text-sm text-slate-500">Estimated value vs Asking price</p>
+                      </div>
+                    </div>
+                    <BarChart
+                      className="h-72 mt-4"
+                      data={revenueData}
+                      index="date"
+                      categories={["Volora Value", "Asking Price"]}
+                      colors={["amber", "slate"]}
+                      yAxisWidth={48}
+                      showAnimation={true}
+                    />
+                  </Card>
+
+                  {/* Right Side Column (Spans 4) */}
+                  <div className="lg:col-span-4 flex flex-col gap-6">
+
+                    {/* Donut Chart */}
+                    <Card className="shadow-sm border-slate-200 p-6 flex-1">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Portfolio Breakup</h3>
+                      <p className="text-sm text-slate-500 mb-6">Current deal distribution</p>
+                      <div className="flex items-center justify-center">
+                        <DonutChart
+                          className="h-40"
+                          data={portfolioBreakup}
+                          category="value"
+                          index="name"
+                          colors={["emerald", "amber", "rose"]}
+                          showLabel={true}
+                        />
+                      </div>
+                      <div className="mt-6 flex justify-between items-center px-4">
+                        <p className="text-2xl font-bold text-slate-900">45%</p>
+                        <p className="text-sm font-medium text-emerald-600">Bargain Deals</p>
+                      </div>
+                    </Card>
+                  </div>
+
+                </div>
+
+                {/* ROW 3: Data Tables & Area Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                  {/* Deals by Location (Spans 8) */}
+                  <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Active Deals by Location</h3>
+                    <p className="text-sm text-slate-500 mb-6">Top performing analytical hubs</p>
+                    <BarChart
+                      className="h-64"
+                      data={locationData}
+                      index="Location"
+                      categories={["Active Deals"]}
+                      colors={["amber"]}
+                      layout="vertical"
+                      showLegend={false}
+                      showAnimation={true}
+                    />
+                  </Card>
+
+                  {/* Recent Transactions List (Spans 4) */}
+                  <Card className="lg:col-span-4 shadow-sm border-slate-200 p-6">
+                    <h3 className="text-lg font-bold text-slate-900 mb-6">Recent Activity</h3>
+                    <div className="space-y-6">
+                      {recentTransactions.map((tx) => (
+                        <div key={tx.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-full ${tx.isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
+                              <RiCheckboxCircleLine className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-900">{tx.type}</p>
+                              <p className="text-xs text-slate-500">{tx.location}</p>
+                            </div>
+                          </div>
+                          <p className={`text-sm font-bold ${tx.isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
+                            {tx.amount}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                </div>
+              </>
+            )}
+
+            {activeMenu === 'Your Book' && (
+              <div className="space-y-6 max-w-7xl mx-auto">
+
+                {/* Header Area */}
+                <div>
+                  <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Your Book</h2>
+                  <p className="text-slate-500 text-sm mt-1">Manage your saved arbitrage deals and active client mandates.</p>
+                </div>
+
+                {/* TOP ROW: Quick Analyze Card */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6 max-w-3xl">
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">Quick Analyze</h3>
+                  <p className="text-sm text-slate-500 mb-4">Paste a Property24 URL to instantly run a Volora valuation.</p>
+
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <RiLinkM className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <input
+                        type="url"
+                        value={propUrl}
+                        onChange={(e) => setPropUrl(e.target.value)}
+                        placeholder="https://www.property24.com/for-sale/cape-town/..."
+                        className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleAnalyzeUrl}
+                      disabled={isAnalyzing || !propUrl}
+                      className={`px-6 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${isAnalyzing || !propUrl
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm'
+                        }`}
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <RiLoader4Line className="w-4 h-4 animate-spin" /> Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <RiFlashlightLine className="w-4 h-4" /> Run Valuation
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* PIPELINE GRID - DYNAMICALLY POPULATED */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-slate-900">Active Pipeline</h3>
+                  </div>
+
+                  {/* CSS Grid Header Row */}
+                  <div className="grid grid-cols-12 gap-4 p-4 border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <div className="col-span-3">Property</div>
+                    <div className="col-span-2">Type</div>
+                    <div className="col-span-2">Asking Price</div>
+                    <div className="col-span-2">Volora Value</div>
+                    <div className="col-span-2">Deal Score</div>
+                    <div className="col-span-1 text-right">Actions</div>
+                  </div>
+
+                  {/* Data Rows map over the dynamically updated state */}
+                  <div className="divide-y divide-slate-100">
+                    {savedBook.map((deal) => (
+                      <div key={deal.id} className="grid grid-cols-12 gap-4 p-4 items-center text-sm hover:bg-slate-50 transition-colors">
+                        <div className="col-span-3 font-medium text-slate-900">{deal.address}</div>
+                        <div className="col-span-2 text-slate-500">{deal.type}</div>
+                        <div className="col-span-2 text-slate-600">
+                          R {typeof deal.asking === 'number' ? deal.asking.toLocaleString() : deal.asking}
+                        </div>
+                        <div className="col-span-2 font-medium text-slate-900">
+                          R {typeof deal.volora === 'number' ? deal.volora.toLocaleString() : deal.volora}
+                        </div>
+
+                        {/* Dynamic Color Pill */}
+                        <div className="col-span-2">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${deal.score >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            deal.score <= 50 ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                            {deal.score >= 80 ? 'BARGAIN' : deal.score <= 50 ? 'ROBBERY' : 'FAIR'}
+                          </span>
+                        </div>
+
+                        {/* Action Icons */}
+                        <div className="col-span-1 flex justify-end gap-2 text-slate-400">
+                          <button className="hover:text-amber-500 transition-colors"><RiEyeLine className="w-5 h-5" /></button>
+                          <button className="hover:text-rose-500 transition-colors"><RiDeleteBinLine className="w-5 h-5" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            )}
           </div>
         </div>
       </main>

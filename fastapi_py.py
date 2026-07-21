@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
+import requests
 import pandas as pd
 import numpy as np
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,12 @@ from supabase import create_client, Client
 import os
 import random
 from fastapi import Query
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import requests
+from bs4 import BeautifulSoup
+import re
  
 # Initialize Supabase
 # Replace these strings with your actual Supabase project credentials
@@ -113,6 +120,7 @@ class PropertyInput(BaseModel):
     mentions_renovated: bool
     mentions_luxury: bool
     asking_price: float = 0.0
+    
 
  
 # ==========================================
@@ -323,39 +331,40 @@ def predict_price(prop: PropertyInput):
  
     input_df = pd.DataFrame([{
         'beds': prop.beds,
-    'bath': prop.bath,              # was 'baths'
-    'erf_size': prop.erf_size,
-    'floor': prop.floor,
-    'gar': prop.gar,
-    'location': clean_location,
-    'proptype': clean_proptype,
-    'lease_term': clean_lease,
-    'has_pool': int(prop.has_pool),
-    'is_gated': int(prop.is_gated),
-    'has_study': int(prop.has_study),
-    'has_garden': int(prop.has_garden),
-    'mentions_renovated': int(prop.mentions_renovated),   # was 'mention_renovation'
-    'mentions_luxury': int(prop.mentions_luxury),         # was 'mention_luxury'
-    'has_balcony': int(prop.has_balcony),                 # was missing
-    'has_patio': int(prop.has_patio),                     # was missing
-    'has_internet': int(prop.has_internet),
-    'is_furnished': int(prop.is_furnished),
-    'has_backup': int(prop.has_backup),
-    'is_HouseShare': int(prop.is_HouseShare),
-    'has_sercurity': int(prop.has_sercurity),
-    'has_ocean_view': int(prop.has_ocean_view),
-    'has_mountain_view': int(prop.has_mountain_view),
-    "macro_suburb": location_data['macro_suburb'].values[0],
-    "property_percentile": location_data['property_percentile'].values[0],
-    "safety_score": location_data['safety_score'].values[0],
-    "school_count": location_data['school_count'].values[0],
-    "region": location_data['region'].values[0],
-    "healthcare_facilities_5km": location_data['healthcare_facilities_5km'].values[0],
-    "civic_responsiveness_percentile": location_data['civic_responsiveness_percentile'].values[0],
-    "taxi_routes": location_data['taxi_routes'].values[0],
-    "median_gv": location_data['median_gv'].values[0]
+        'bath': prop.bath,              # was 'baths'
+        'erf_size': prop.erf_size,
+        'floor': prop.floor,
+        'gar': prop.gar,
+        'location': clean_location,
+        'proptype': clean_proptype,
+        'lease_term': clean_lease,
+        'has_pool': int(prop.has_pool),
+        'is_gated': int(prop.is_gated),
+        'has_study': int(prop.has_study),
+        'has_garden': int(prop.has_garden),
+        'mentions_renovated': int(prop.mentions_renovated),   # was 'mention_renovation'
+        'mentions_luxury': int(prop.mentions_luxury),         # was 'mention_luxury'
+        'has_balcony': int(prop.has_balcony),                 # was missing
+        'has_patio': int(prop.has_patio),                     # was missing
+        'has_internet': int(prop.has_internet),
+        'is_furnished': int(prop.is_furnished),
+        'has_backup': int(prop.has_backup),
+        'is_HouseShare': int(prop.is_HouseShare),
+        'has_sercurity': int(prop.has_sercurity),
+        'has_ocean_view': int(prop.has_ocean_view),
+        'has_mountain_view': int(prop.has_mountain_view),
+        "macro_suburb": location_data['macro_suburb'].values[0],
+        "property_percentile": location_data['property_percentile'].values[0],
+        "safety_score": location_data['safety_score'].values[0],
+        "school_count": location_data['school_count'].values[0],
+        "region": location_data['region'].values[0],
+        "healthcare_facilities_5km": location_data['healthcare_facilities_5km'].values[0],
+        "civic_responsiveness_percentile": location_data['civic_responsiveness_percentile'].values[0],
+        "taxi_routes": location_data['taxi_routes'].values[0],
+        "median_gv": location_data['median_gv'].values[0]
     }])
- 
+
+    
     input_encoded = encode_with_label_encoders(input_df, label_encoders)
     expected_columns = mod4.feature_names_in_
     input_encoded = input_encoded.reindex(columns=expected_columns, fill_value=0)
@@ -662,3 +671,139 @@ def get_valid_locations():
         .tolist()
     )
     return {"locations": sorted(locations)}
+
+class AnalyzeRequest(BaseModel):
+    url: str
+
+class QuickAnalyzeInput(BaseModel):
+    suburb: str
+    macro_suburb: str = ""
+    region: str = ""
+    asking_price: float = 0.0
+    beds: float = 0
+    bath: float = 0
+    gar: float = 0
+    property_type: str = "House"
+    is_furnished: int = 0
+    has_pool: int = 0
+    has_backup: int = 0
+    floor_level: float = 0
+    erf_size: float = 0
+    floor_size: float = 0
+    has_garden: int = 0
+    lease_term: str = 'Long Term' # Fixed to match React
+    has_sercurity: int = 0
+    has_mountain_view: int = 0
+    has_ocean_view: int = 0
+    has_internet: int = 0
+    is_top_floor: int = 0         # Added missing field
+    near_promenade: int = 0       # Added missing field
+    has_study: int = 0
+    mentions_renovated: int = 0
+    mentions_luxury: int = 0
+    mentions_new_build: int = 0   # Added missing field
+    is_HouseShare: int = 0
+    is_gated: int = 0
+    has_balcony: int = 0          # Added missing field
+    has_patio: int = 0            # Added missing field
+    deposit: float = 0
+
+
+    
+
+
+@app.post("/predict-quick")
+def predict_quick_price(prop: QuickAnalyzeInput):
+    clean_input_location = prop.suburb.lower().strip()
+
+    # 1. Look up the location data from your Supabase DB using the provided suburb
+    location_data = lookup_db[
+        lookup_db['location'].astype(str).str.lower().str.strip() == clean_input_location
+    ]
+
+    if location_data.empty and 'macro_suburb' in lookup_db.columns:
+        location_data = lookup_db[
+            lookup_db['macro_suburb'].astype(str).str.lower().str.strip() == clean_input_location
+        ]
+
+    if location_data.empty:
+        location_data = lookup_db[
+            lookup_db['location'].astype(str).str.lower().str.strip()
+            .str.contains(clean_input_location, na=False)
+        ]
+
+    if location_data.empty:
+        return {"message": "Error: Location not found in database."}
+
+    # 2. Format the fields for the model
+    clean_proptype = prop.property_type.title() if prop.property_type else "House"
+    clean_location = prop.suburb.title()
+
+    # 3. Build the DataFrame specifically handling the new inputs & filling defaults for missing ones
+    input_df = pd.DataFrame([{
+        'beds': prop.beds,
+        'bath': prop.bath,
+        'erf_size': prop.erf_size,
+        'floor': prop.floor_level,
+        'floor_size': prop.floor_size,
+        'gar': prop.gar,
+        'location': clean_location,
+        'proptype': clean_proptype,
+        'lease_term': prop.lease_term,
+        'has_pool': prop.has_pool,
+        'is_gated': prop.is_gated,                     # Fixed from 0
+        'has_study': prop.has_study,                   # Fixed from 0
+        'has_garden': prop.has_garden,                 # Fixed from 0
+        'mentions_renovated': prop.mentions_renovated, # Fixed from 0
+        'mentions_luxury': prop.mentions_luxury,       # Fixed from 0
+        'mentions_new_build': prop.mentions_new_build, # Fixed from 0
+        'has_balcony': prop.has_balcony,               # Fixed from 0
+        'has_patio': prop.has_patio,                   # Fixed from 0
+        'has_internet': prop.has_internet,                         
+        'is_furnished': prop.is_furnished,
+        'has_backup': prop.has_backup,
+        'is_HouseShare': prop.is_HouseShare,           # Fixed from 0
+        'has_sercurity': prop.has_sercurity,           # Fixed from 0
+        'has_ocean_view': prop.has_ocean_view,         # Fixed from 0
+        'has_mountain_view': prop.has_mountain_view,   # Fixed from 0
+        'is_top_floor': prop.is_top_floor,             # Fixed from 0
+        'near_promenade': prop.near_promenade,         # Fixed from 0
+        "macro_suburb": location_data['macro_suburb'].values[0],
+        "property_percentile": location_data['property_percentile'].values[0],
+        "safety_score": location_data['safety_score'].values[0],
+        "school_count": location_data['school_count'].values[0],
+        "region": location_data['region'].values[0],
+        "healthcare_facilities_5km": location_data['healthcare_facilities_5km'].values[0],
+        "civic_responsiveness_percentile": location_data['civic_responsiveness_percentile'].values[0],
+        "taxi_routes": location_data['taxi_routes'].values[0],
+        "median_gv": location_data['median_gv'].values[0]
+    }])
+
+    # 4. Predict
+    input_encoded = encode_with_label_encoders(input_df, label_encoders)
+    expected_columns = mod4.feature_names_in_
+    input_encoded = input_encoded.reindex(columns=expected_columns, fill_value=0)
+    
+    actual_rands, lower_price, high_price, interval_width_pct = predict_with_bounds(input_encoded)
+
+    # 5. Calculate Scores
+    percentage_difference = 0.0
+    if prop.asking_price > 0:
+        price_difference = actual_rands - prop.asking_price
+        percentage_difference = (price_difference / actual_rands) * 100
+
+    deal_score = calculate_volora_rental_score(
+        percent_diff=percentage_difference,
+        safety_score=location_data['safety_score'].values[0],
+        civic_score=location_data['civic_responsiveness_percentile'].values[0],
+        prop_percentile=location_data['property_percentile'].values[0]
+    )
+
+    # 6. Return exact keys Next.js expects
+    return {
+        "message": "Success",
+        "estimated_value": round(actual_rands, 2),
+        "deal_score": deal_score
+    }
+ 
+
