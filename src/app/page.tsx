@@ -1654,11 +1654,9 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                         {/* Dynamic Color Pill */}
                         <div className="col-span-2">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${deal.score >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                            deal.score <= 50 ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                              'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}>
-                            {deal.score >= 80 ? 'BARGAIN' : deal.score <= 50 ? 'ROBBERY' : 'FAIR'}
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${deal.score ? (deal.score >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : deal.score >= 35 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200') :
+                            'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                            {deal.score ? `${deal.score}` : 'N/A'}
                           </span>
                         </div>
 
