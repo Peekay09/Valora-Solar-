@@ -12,12 +12,12 @@ import {
   RiArrowDownLine,
   RiArrowDownSLine,
   RiArrowRightLine,
-  RiCloseLine,
   RiArrowUpLine,
   RiArrowUpSLine,
   RiBuilding4Line,
   RiCheckboxCircleLine,
   RiCheckLine,
+  RiCloseLine,
   RiContactsBook3Line,
   RiDashboardLine,
   RiDeleteBinLine,
@@ -49,7 +49,7 @@ import {
   theme
 } from 'antd';
 import dynamic from "next/dynamic";
-import { JSXElementConstructor, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // 1. DYNAMIC MAP IMPORT (Prevents Next.js Server Crashes)
 const LeafletMap = dynamic<any>(
@@ -1359,7 +1359,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         volora_value: predictionData.estimated_value,
         score: predictionData.deal_score,
         upper_bound: predictionData.upper_bound,
-        listing_input: predictionData.listing_input,
+        listing_input: predictionData.listing_input, // <-- FIXED TO LOWERCASE
         matches: predictionData.matches,
         price_diff: predictionData.price_diff,
         percent_diff: predictionData.percent_diff,
@@ -1376,12 +1376,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         status: "Newly Analyzed",
         lower_bound: predictionData.lower_bound,
         upper_bound: predictionData.upper_bound,
-        // ADD THESE NEW FIELDS FOR THE ACCORDION:
         price_diff: predictionData.price_diff,
         percent_diff: predictionData.percent_diff,
-        features: {
-          LIST_INPUT: predictionData.listing_input,
-        }
+        listing_input: predictionData.listing_input, // <-- FIXED TO LOWERCASE
+        MATCHES: predictionData.matches,
       };
       setSavedBook((prevBook) => [newDeal, ...prevBook]);
       setPropUrl('');
@@ -1398,6 +1396,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     setLocationLookup(value);
     setagent_Suburb(value);
   }
+
+
 
   return (
     <div className="flex h-screen w-full bg-slate-50 font-sans text-slate-900 absolute inset-0 z-50">
@@ -1714,19 +1714,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                         Your book is currently empty. Analyze a property above to add it here.
                       </div>
                     ) : (
-                      savedBook.map((deal: {
-                        address: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
-                        id: any;
-                        type: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
-                        asking: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
-                        volora: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
-                        lower_bound: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
-                        upper_bound: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
-                        score: number;
-                        price_diff: { toLocaleString: () => any; };
-                        percent_diff: number;
-                        status: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
-                      }, idx: any) => {
+                      savedBook.map((deal: any, idx: number) => {
                         // Skip the empty initialized object from defaultMockBook if it renders
                         if (!deal.address) return null;
 
@@ -1778,23 +1766,86 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                             {/* 2. THE HIDDEN DROPDOWN PANEL (Shows when arrow is clicked) */}
                             {isExpanded && (
-                              <div className="p-4 mx-4 mb-4 bg-slate-100/50 rounded-lg border border-slate-200 grid grid-cols-2 gap-6 text-sm animate-in fade-in slide-in-from-top-2">
+                              <div className="p-5 mx-4 mb-4 bg-slate-50/80 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm animate-in fade-in slide-in-from-top-2 shadow-inner">
+
+                                {/* Left Column: Variance Metrics */}
                                 <div>
-                                  <h4 className="font-bold text-slate-900 mb-2 text-xs uppercase tracking-wider">Variance Metrics</h4>
-                                  <div className="space-y-1 text-slate-600">
-                                    <p className="flex justify-between">
+                                  <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-wider">Variance Metrics</h4>
+                                  <div className="bg-white p-4 rounded-lg border border-slate-200 space-y-2">
+                                    <p className="flex justify-between items-center text-slate-500">
+                                      <span>Asking Price:</span>
+                                      <span className="font-medium text-slate-900">R {deal.asking?.toLocaleString()}</span>
+                                    </p>
+                                    <p className="flex justify-between items-center text-slate-500">
+                                      <span>Volora Value:</span>
+                                      <span className="font-medium text-slate-900">R {deal.volora?.toLocaleString()}</span>
+                                    </p>
+
+                                    <div className="border-b border-slate-100 my-2"></div>
+
+                                    <p className="flex justify-between items-center text-slate-500">
                                       <span>Value Difference:</span>
                                       <span className="font-medium text-slate-900">R {deal.price_diff?.toLocaleString() || '0'}</span>
                                     </p>
-                                    <p className="flex justify-between">
+                                    <p className="flex justify-between items-center text-slate-500">
                                       <span>Percentage Diff:</span>
-                                      <span className="font-medium text-slate-900">{deal.percent_diff ? deal.percent_diff.toFixed(2) : '0'}%</span>
+                                      {/* Dynamic Green/Red Badge for Percentage */}
+                                      <span className={`font-bold px-2 py-0.5 rounded ${deal.percent_diff > 0
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : 'bg-rose-100 text-rose-700'
+                                        }`}>
+                                        {deal.percent_diff > 0 ? '+' : ''}{deal.percent_diff?.toFixed(2)}%
+                                      </span>
                                     </p>
                                   </div>
                                 </div>
+
+                                {/* Right Column: Property Traits */}
                                 <div>
-                                  <h4 className="font-bold text-slate-900 mb-2 text-xs uppercase tracking-wider">Status</h4>
-                                  <p className="text-slate-600">This deal is currently marked as <span className="font-semibold text-slate-900">{deal.status}</span>. You can review the full breakdown or save it to a client mandate.</p>
+                                  <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-wider">Property Traits (Model Inputs)</h4>
+                                  <div className="bg-white p-4 rounded-lg border border-slate-200 grid grid-cols-2 gap-3">
+
+                                    {/* Safely catch whichever key name is currently stored in LocalStorage */}
+                                    {(() => {
+                                      const traits = deal.listing_input || deal.Listing_input || {};
+
+                                      return [
+                                        { label: 'Pool', value: traits.has_pool },
+                                        { label: 'Backup Power', value: traits.has_backup },
+                                        { label: 'Gated / Estate', value: traits.is_gated },
+                                        // Catching the spelling typo from your Python payload
+                                        { label: 'Security', value: traits.has_sercurity ?? traits.has_security },
+                                        { label: 'Ocean View', value: traits.has_ocean_view },
+                                        { label: 'Mountain View', value: traits.has_mountain_view },
+                                        { label: 'Balcony', value: traits.has_balcony },
+                                        { label: 'Internet / Fibre', value: traits.has_internet },
+                                        { label: 'Furnished', value: traits.is_furnished },
+                                        { label: 'Renovated', value: traits.mentions_renovated }
+                                      ].map((trait, i) => {
+
+                                        // ULTIMATE CHECK: Handles 1, "1", true, "True", or "true" from Python
+                                        const isActive =
+                                          trait.value === true ||
+                                          trait.value === 1 ||
+                                          trait.value === "1" ||
+                                          String(trait.value).toLowerCase() === "true";
+
+                                        return (
+                                          <div key={i} className="flex items-center gap-2">
+                                            {isActive ? (
+                                              <RiCheckLine className="w-4 h-4 text-emerald-500" />
+                                            ) : (
+                                              <RiCloseLine className="w-4 h-4 text-rose-400" />
+                                            )}
+                                            <span className={isActive ? "text-slate-700 font-medium" : "text-slate-400 line-through"}>
+                                              {trait.label}
+                                            </span>
+                                          </div>
+                                        );
+                                      });
+                                    })()}
+
+                                  </div>
                                 </div>
                               </div>
                             )}
