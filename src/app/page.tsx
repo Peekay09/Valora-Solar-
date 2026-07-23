@@ -10,8 +10,10 @@ import { MorphingText } from "@/components/ui/morphing-text";
 import { cx } from '@/lib/utils';
 import {
   RiArrowDownLine,
+  RiArrowDownSLine,
   RiArrowRightLine,
   RiArrowUpLine,
+  RiArrowUpSLine,
   RiBuilding4Line,
   RiCheckboxCircleLine,
   RiCheckLine,
@@ -46,7 +48,7 @@ import {
   theme
 } from 'antd';
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from 'react';
+import { JSXElementConstructor, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from 'react';
 
 // 1. DYNAMIC MAP IMPORT (Prevents Next.js Server Crashes)
 const LeafletMap = dynamic<any>(
@@ -184,6 +186,19 @@ const AgentLoginForm = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
   );
 };
 
+type AnalysisResult = {
+  type: string;
+  asking_price: number;
+  volora_value: number;
+  score: number;
+  lower_bound?: number;
+  upper_bound?: number;
+  listing_input?: any;
+  matches?: any;
+  price_diff?: number;
+  percent_diff?: number;
+};
+
 export default function VoloraPlatform() {
   // 1. Navigation & UI State
   const [activeTab, setActiveTab] = useState<'overview' | 'valuation' | 'benchmarks' | 'Agentportal'>('overview');
@@ -214,6 +229,18 @@ export default function VoloraPlatform() {
   // 4. Engine Memory
   const [isLoading, setIsLoading] = useState(false);
   const [predictionResult, setPredictionResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<{
+    type: string;
+    asking_price: number;
+    volora_value: number;
+    score: number;
+    lower_bound?: number;
+    upper_bound?: number;
+    listing_input?: any;
+    matches?: any;
+    price_diff?: number;
+    percent_diff?: number;
+  } | null>(null);
   const [num_df, setNumDf] = useState<number>(0);
   const [arb_count, setArbCount] = useState<number>(0);
   const [avg_rent, setavg_rent] = useState<number>(0);
@@ -1158,14 +1185,43 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     asking_price: number;
     volora_value: number;
     score: number;
+    upper_bound?: number;
+    listing_input?: any;
+    matches?: any;
+    price_diff?: number;
+    percent_diff?: number;
+    lower_bound?: number;
   } | null>(null);
 
-  // We keep the initial mock data, but this will now dynamically grow when a URL is analyzed
-  const [savedBook, setSavedBook] = useState([
-    { id: 1, address: "14 Victoria Rd, Bantry Bay", type: "Villa", asking: 45000, volora: 52000, score: 88, status: "Negotiating" },
-    { id: 2, address: "201 The Sentinel, CBD", type: "2 Bed Apt", asking: 18000, volora: 16500, score: 42, status: "Monitoring" },
-    { id: 3, address: "12 Kloof St, Gardens", type: "Retail", asking: 35000, volora: 41000, score: 79, status: "Offer Placed" },
-  ]);
+  // --- NEW: Local Storage Hydration for Saved Book ---
+  const defaultMockBook = [{}];
+
+  const [savedBook, setSavedBook] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("volora_agent_book");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    }
+    return defaultMockBook;
+  });
+
+  // --- NEW: Auto-sync to Local Storage whenever savedBook changes ---
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("volora_agent_book", JSON.stringify(savedBook));
+    }
+  }, [savedBook]);
+
+  const [expandedDealId, setExpandedDealId] = useState<number | string | null>(null);
+
+  // --- NEW: Clear Book Handler ---
+  const handleClearBook = () => {
+    if (confirm("Are you sure you want to completely clear your active book? This action cannot be undone.")) {
+      setSavedBook([]);
+      localStorage.removeItem("volora_agent_book");
+    }
+  };
 
   // --- Mock Data for Tremor Charts ---
   const revenueData = [
@@ -1213,7 +1269,6 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       return;
     }
 
-    // Safely handle locations since your useEffect only fetches the 'value'
     const locationMatches = locations.filter((loc) => loc.value === agent_suburb);
     if (locationMatches.length === 0) {
       alert("Location details not found in the database.");
@@ -1226,9 +1281,6 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     setIsAnalyzing(true);
 
     try {
-      // 1. Send URL to R (Plumber)
-      // FIX: Changed localhost to 127.0.0.1. Next.js/Node often resolves localhost to IPv6 (::1), 
-      // but your Plumber server is bound to IPv4 (127.0.0.1) as seen in your terminal screenshot.
       const rResponse = await fetch('http://127.0.0.1:8080/clean-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1250,8 +1302,6 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
       if (!propertyData) throw new Error("R Pipeline returned empty data");
 
-      // 2. Send to Python - We MUST add "|| 0" fallbacks. 
-      // If R returns 'null' for a missing amenity, it will crash Python's strict validation.
       const pythonPayload = {
         suburb: agent_suburb,
         macro_suburb: computedMacro,
@@ -1264,8 +1314,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         is_furnished: propertyData.is_furnished || 0,
         has_pool: propertyData.has_pool || 0,
         has_backup: propertyData.has_backup || 0,
-        erf_size: propertyData.erf_size || 0,  // FIXED
-        floor_size: propertyData.floor || 0,   // FIXED
+        erf_size: propertyData.erf_size || 0,
+        floor_size: propertyData.floor || 0,
         floor: propertyData.floor || 0,
         has_garden: propertyData.has_garden || 0,
         lease_term: propertyData.lease || 'Long Term',
@@ -1285,7 +1335,6 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         deposit: propertyData.deposit ? String(propertyData.deposit) : "0",
       };
 
-      // FIX: Changed localhost to 127.0.0.1 here as well to ensure it reliably hits FastAPI
       const pythonResponse = await fetch('http://127.0.0.1:8000/predict-quick', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1299,20 +1348,23 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
       const predictionData = await pythonResponse.json();
 
-      // Catch the custom dictionary error returned by Python if the suburb isn't in lookup_db
       if (predictionData.message && predictionData.message.includes("Error")) {
         throw new Error(predictionData.message);
       }
 
-      // 3. Keep standard analysis result state updated
       setAnalysisResult({
         type: `${propertyData.beds || 0} Bed ${propertyData.type || 'Property'}`,
         asking_price: propertyData.price || 0,
         volora_value: predictionData.estimated_value,
         score: predictionData.deal_score,
+        upper_bound: predictionData.upper_bound,
+        listing_input: predictionData.listing_input,
+        matches: predictionData.matches,
+        price_diff: predictionData.price_diff,
+        percent_diff: predictionData.percent_diff,
+        lower_bound: predictionData.lower_bound,
       });
 
-      // 4. DYNAMICALLY ADD TO SAVED BOOK TABLE
       const newDeal = {
         id: Date.now(),
         address: `New Listing in ${agent_suburb}`,
@@ -1320,7 +1372,9 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         asking: propertyData.price || 0,
         volora: predictionData.estimated_value,
         score: predictionData.deal_score,
-        status: "Newly Analyzed"
+        status: "Newly Analyzed",
+        lower_bound: predictionData.lower_bound,
+        upper_bound: predictionData.upper_bound
       };
 
       setSavedBook((prevBook) => [newDeal, ...prevBook]);
@@ -1328,7 +1382,6 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
     } catch (error: any) {
       console.error("Analysis Pipeline Error:", error);
-      // This will now pop up with the EXACT cause of the crash (e.g., Python Engine Failed: 422 Unprocessable Entity)
       alert(`Pipeline Failed: \n\n${error.message}`);
     } finally {
       setIsAnalyzing(false);
@@ -1379,7 +1432,6 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
             <div className="space-y-1">
               <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
                 <RiMapPinLine className="w-4 h-4" /> Lookup by Location
-
               </button>
               <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
                 <RiBuilding4Line className="w-4 h-4" /> Market Pulse
@@ -1625,8 +1677,18 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                 {/* PIPELINE GRID - DYNAMICALLY POPULATED */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
                   <div className="p-6 border-b border-slate-200 flex justify-between items-center">
                     <h3 className="text-lg font-bold text-slate-900">Active Pipeline</h3>
+                    {savedBook.length > 0 && (
+                      <button
+                        onClick={handleClearBook}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all cursor-pointer"
+                      >
+                        <RiDeleteBinLine className="w-3.5 h-3.5" />
+                        Clear Book ({savedBook.length})
+                      </button>
+                    )}
                   </div>
 
                   {/* CSS Grid Header Row */}
@@ -1641,32 +1703,99 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                   {/* Data Rows map over the dynamically updated state */}
                   <div className="divide-y divide-slate-100">
-                    {savedBook.map((deal) => (
-                      <div key={deal.id} className="grid grid-cols-12 gap-4 p-4 items-center text-sm hover:bg-slate-50 transition-colors">
-                        <div className="col-span-3 font-medium text-slate-900">{deal.address}</div>
-                        <div className="col-span-2 text-slate-500">{deal.type}</div>
-                        <div className="col-span-2 text-slate-600">
-                          R {typeof deal.asking === 'number' ? deal.asking.toLocaleString() : deal.asking}
-                        </div>
-                        <div className="col-span-2 font-medium text-slate-900">
-                          R {typeof deal.volora === 'number' ? deal.volora.toLocaleString() : deal.volora}
-                        </div>
-
-                        {/* Dynamic Color Pill */}
-                        <div className="col-span-2">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${deal.score ? (deal.score >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : deal.score >= 35 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200') :
-                            'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                            {deal.score ? `${deal.score}` : 'N/A'}
-                          </span>
-                        </div>
-
-                        {/* Action Icons */}
-                        <div className="col-span-1 flex justify-end gap-2 text-slate-400">
-                          <button className="hover:text-amber-500 transition-colors"><RiEyeLine className="w-5 h-5" /></button>
-                          <button className="hover:text-rose-500 transition-colors"><RiDeleteBinLine className="w-5 h-5" /></button>
-                        </div>
+                    {savedBook.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400 text-sm">
+                        Your book is currently empty. Analyze a property above to add it here.
                       </div>
-                    ))}
+                    ) : (
+                      savedBook.map((deal: {
+                        address: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
+                        id: any;
+                        type: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
+                        asking: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
+                        volora: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
+                        lower_bound: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
+                        upper_bound: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
+                        score: number;
+                        price_diff: { toLocaleString: () => any; };
+                        percent_diff: number;
+                        status: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined;
+                      }, idx: any) => {
+                        // Skip the empty initialized object from defaultMockBook if it renders
+                        if (!deal.address) return null;
+
+                        // Check if this specific row is the one currently expanded
+                        const isExpanded = expandedDealId === (deal.id || idx);
+
+                        return (
+                          <div key={deal.id || idx} className="flex flex-col transition-colors">
+                            {/* 1. THE MAIN VISIBLE ROW */}
+                            <div className="grid grid-cols-12 gap-4 p-4 items-center text-sm hover:bg-slate-50 transition-colors">
+                              <div className="col-span-3 font-medium text-slate-900">{deal.address}</div>
+                              <div className="col-span-2 text-slate-500">{deal.type}</div>
+                              <div className="col-span-2 text-slate-600">
+                                R {typeof deal.asking === 'number' ? deal.asking.toLocaleString() : deal.asking}
+                              </div>
+
+                              {/* STYLED COLUMN: Flexbox separates the values clearly */}
+                              <div className="col-span-2 flex flex-col justify-center">
+                                <span className="font-bold text-slate-900">
+                                  R {typeof deal.volora === 'number' ? deal.volora.toLocaleString() : deal.volora}
+                                </span>
+                                <span className="text-[10px] font-medium text-slate-400 mt-0.5">
+                                  R {typeof deal.lower_bound === 'number' ? deal.lower_bound.toLocaleString() : deal.lower_bound} - R {typeof deal.upper_bound === 'number' ? deal.upper_bound.toLocaleString() : deal.upper_bound}
+                                </span>
+                              </div>
+
+                              {/* Dynamic Color Pill */}
+                              <div className="col-span-2">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${deal.score ? (deal.score >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : deal.score >= 35 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200') :
+                                  'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                                  {deal.score ? `${deal.score}` : 'N/A'}
+                                </span>
+                              </div>
+
+                              {/* Action Icons */}
+                              <div className="col-span-1 flex justify-end gap-2 text-slate-400 items-center">
+                                <button className="hover:text-amber-500 transition-colors"><RiEyeLine className="w-5 h-5" /></button>
+                                <button className="hover:text-rose-500 transition-colors"><RiDeleteBinLine className="w-5 h-5" /></button>
+
+                                {/* THE NEW EXPAND/COLLAPSE ARROW */}
+                                <button
+                                  onClick={() => setExpandedDealId(isExpanded ? null : (deal.id || idx))}
+                                  className="hover:text-slate-900 transition-colors ml-1 p-1 hover:bg-slate-200 rounded"
+                                >
+                                  {isExpanded ? <RiArrowUpSLine className="w-5 h-5" /> : <RiArrowDownSLine className="w-5 h-5" />}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 2. THE HIDDEN DROPDOWN PANEL (Shows when arrow is clicked) */}
+                            {isExpanded && (
+                              <div className="p-4 mx-4 mb-4 bg-slate-100/50 rounded-lg border border-slate-200 grid grid-cols-2 gap-6 text-sm animate-in fade-in slide-in-from-top-2">
+                                <div>
+                                  <h4 className="font-bold text-slate-900 mb-2 text-xs uppercase tracking-wider">Variance Metrics</h4>
+                                  <div className="space-y-1 text-slate-600">
+                                    <p className="flex justify-between">
+                                      <span>Value Difference:</span>
+                                      <span className="font-medium text-slate-900">R {deal.price_diff?.toLocaleString() || '0'}</span>
+                                    </p>
+                                    <p className="flex justify-between">
+                                      <span>Percentage Diff:</span>
+                                      <span className="font-medium text-slate-900">{deal.percent_diff ? deal.percent_diff.toFixed(2) : '0'}%</span>
+                                    </p>
+                                  </div>
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-slate-900 mb-2 text-xs uppercase tracking-wider">Status</h4>
+                                  <p className="text-slate-600">This deal is currently marked as <span className="font-semibold text-slate-900">{deal.status}</span>. You can review the full breakdown or save it to a client mandate.</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 </div>
 
@@ -1678,4 +1807,3 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     </div>
   );
 };
-

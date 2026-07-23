@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
@@ -672,6 +674,8 @@ def get_valid_locations():
     )
     return {"locations": sorted(locations)}
 
+
+
 class AnalyzeRequest(BaseModel):
     url: str
 
@@ -708,6 +712,8 @@ class QuickAnalyzeInput(BaseModel):
     has_balcony: int = 0         
     has_patio: int = 0           
     deposit: str = "0"           # FIXED: Matched type hint to string
+
+
 
 
 @app.post("/predict-quick")
@@ -786,6 +792,9 @@ def predict_quick_price(prop: QuickAnalyzeInput):
     
     actual_rands, lower_price, high_price, interval_width_pct = predict_with_bounds(input_encoded)
 
+    Listing_input=input_df.iloc[0].to_dict() 
+
+
     # 5. Calculate Scores
     percentage_difference = 0.0
     if prop.asking_price > 0:
@@ -799,9 +808,82 @@ def predict_quick_price(prop: QuickAnalyzeInput):
         prop_percentile=location_data['property_percentile'].values[0]
     )
 
+   # Ensure the asking price is a clean float (removes 'R', spaces, and commas)
+    input_price = prop.asking_price
+    if isinstance(input_price, str):
+        input_price = float(str(input_price).replace('R', '').replace(' ', '').replace(',', ''))
+    
+    # Extract scalar values from input_df for comparison
+    input_val = input_df.iloc[0]
+
+    # --- 1. Filter by mandatory baseline features (Must Match) ---
+    # We only want to compare against properties in the exact same location and type
+    potential_matches = lookup_db[
+        (lookup_db['location'].str.lower().str.strip() == clean_input_location) &
+        (lookup_db['proptype'].str.lower() == clean_proptype.lower())
+    ].copy()
+
+    if not potential_matches.empty:
+        # --- 2. Define our flexible matching rules ---
+        
+        # Rule A: Price must be within R7,500
+        # (Assuming your lookup_db['price'] is stored as the raw number, not log)
+        price_match = abs(potential_matches['price'] - input_price) <= 7500
+        
+        # Rule B: Floor size must be within 7 square meters
+        floor_match = abs(potential_matches['floor'] - input_val['floor']) <= 7
+        
+        # Rule C: Exact matches for binary/categorical features
+        exact_features = [
+            'beds', 'bath', 'gar', 'has_pool', 'is_gated', 'has_study', 
+            'has_garden', 'mentions_renovated', 'mentions_luxury', 
+            'mentions_new_build', 'has_balcony', 'has_patio', 'has_internet', 
+            'is_furnished', 'has_backup', 'is_HouseShare', 'has_sercurity', 
+            'has_ocean_view', 'has_mountain_view', 'near_promenade'
+        ]
+        
+        # Create a DataFrame of True/False for every exact feature match
+        match_scores = pd.DataFrame(index=potential_matches.index)
+        for feat in exact_features:
+            # Map frontend names to DB names if they differ (e.g. 'beds' vs 'bed')
+            db_col = 'bed' if feat == 'beds' else feat 
+            
+            if db_col in potential_matches.columns and feat in input_df.columns:
+                match_scores[feat] = potential_matches[db_col] == input_val[feat]
+
+        # Add our flexible rules to the scoring matrix
+        match_scores['price_flex'] = price_match
+        match_scores['floor_flex'] = floor_match
+        
+        # --- 3. Calculate the percentage score ---
+        # Total columns checked
+        total_features_checked = len(match_scores.columns)
+        
+        # Sum the True values across the rows to get total matches per property
+        potential_matches['match_percentage'] = (match_scores.sum(axis=1) / total_features_checked) * 100
+
+        # --- 4. Filter for matches >= 76% ---
+        strong_matches = potential_matches[potential_matches['match_percentage'] >= 75.0]
+
+        if not strong_matches.empty:
+            
+            # Sort by the highest match percentage first
+            strong_matches = strong_matches.sort_values(by='match_percentage', ascending=False)
+            
+            # Extract the URLs
+            matched_urls = strong_matches['url'].tolist()
+            
+            
+            # You can now attach `matched_urls` to your FastAPI return dictionary!
     # 6. Return exact keys Next.js expects
     return {
         "message": "Success",
         "estimated_value": round(actual_rands, 2),
-        "deal_score": deal_score
+        "deal_score": deal_score,
+        "lower_bound": round(lower_price, 2),
+        "upper_bound": round(high_price, 2),
+        "percent_diff": round(percentage_difference, 2),
+        'price_diff': round(price_difference, 2),
+        "listing_input": Listing_input,
+        'matches': matched_urls if 'matched_urls' in locals() else []
     }
