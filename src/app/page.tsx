@@ -12,6 +12,7 @@ import {
   RiArrowDownLine,
   RiArrowDownSLine,
   RiArrowRightLine,
+  RiCloseLine,
   RiArrowUpLine,
   RiArrowUpSLine,
   RiBuilding4Line,
@@ -1374,9 +1375,14 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         score: predictionData.deal_score,
         status: "Newly Analyzed",
         lower_bound: predictionData.lower_bound,
-        upper_bound: predictionData.upper_bound
+        upper_bound: predictionData.upper_bound,
+        // ADD THESE NEW FIELDS FOR THE ACCORDION:
+        price_diff: predictionData.price_diff,
+        percent_diff: predictionData.percent_diff,
+        features: {
+          LIST_INPUT: predictionData.listing_input,
+        }
       };
-
       setSavedBook((prevBook) => [newDeal, ...prevBook]);
       setPropUrl('');
 
