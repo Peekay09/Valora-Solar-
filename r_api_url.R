@@ -119,7 +119,8 @@ function(url, suburb="", macro_suburb="", region="", res) {
         
         is_furnished        = as.integer(str_detect(feat_clean, '(?i)(?<!un)(?<!not )\\bfurnished\\b')),
         has_pool           = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )\\bpool\\b(?! table)')),
-        has_internet       = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )(internet|fibre)')),
+        has_internet      = as.integer(str_detect(desc_clean, '(?i)fibre-ready|wifi|wi-fi'))|| as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )(internet|fibre)')),
+
         has_inverter       = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )inverter')),
         has_solar_panels   = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )solar panels')),
         has_garden         = as.integer(str_detect(feat_clean, '(?i)garden')),

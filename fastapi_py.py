@@ -528,7 +528,22 @@ def get_recent_map_listings():
         # MUST send exact fallback formatting so React doesn't crash on undefined indices
         return {"listings": [], "statbar": [{"total_count": 0}, {"arb_count": 0}, {"avg_rent": 0}, {"sq_meter": 0}]}
  
- 
+def safe_sum_price(df_or_tuple):
+    """Safely extracts and sums prices whether input is a DataFrame, Series, or Tuple."""
+    if df_or_tuple is None or len(df_or_tuple) == 0:
+        return 0
+    # If it's a Pandas DataFrame holding 'actual_price'
+    if hasattr(df_or_tuple, 'get') or hasattr(df_or_tuple, '__getitem__'):
+        try:
+            prices = df_or_tuple['actual_price']
+            return sum(float(p) for p in prices if p is not None)
+        except (KeyError, TypeError):
+            pass
+    # If it's a raw tuple or list of numbers/tuples
+    try:
+        return sum(float(x[0] if isinstance(x, (tuple, list)) else x) for x in df_or_tuple if x is not None)
+    except Exception:
+        return 0
 @app.get("/api/clickedsuburb")
 async def get_suburb_stats(suburb: str = Query(..., description="The name of the clicked suburb")):
     # 1. INITIALIZE VARIABLES FIRST (This fixes the 'referenced before assignment' error)
@@ -546,7 +561,20 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
     sqrent_one=0
     sqrent_two=0
     sqrent_three=0
- 
+    four_bed=0
+    five_bed=0
+    zero_bed=0
+    sqrent_four=0
+    sqrent_five=0
+    sqrent_05=0
+    avgrent_four=0
+    avgrent_five=0
+    avgrent_05=0
+    dom_chart_data = [{"range": l, "count": 0} for l in ['0-7', '8-14', '15-30', '30+']]
+    scatter_data = []
+    avg_var=0
+
+
     try:
         # 2. Fetch Data
         response = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(50000).execute()
@@ -574,9 +602,12 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
         # 4. Only run calculations if we actually found listings for this suburb
         if num_sub > 0:
             # Count bedroom distributions in the suburb safely
+            zero_bed=int((sub_df['beds'] == 0.5).sum()) 
             one_bed = int((sub_df['beds'] == 1).sum())
             two_bed = int((sub_df['beds'] == 2).sum())
             three_bed = int((sub_df['beds'] == 3).sum())
+            four_bed=int((sub_df['beds']==4).sum())
+            five_bed=int((sub_df['beds']==5).sum())
  
             # Predict only on the suburb subset
             df_encoded = encode_with_label_encoders(sub_df, label_encoders)
@@ -620,11 +651,16 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             b1_df = sub_df[sub_df['beds'] == 1]
             b2_df = sub_df[sub_df['beds'] == 2]
             b3_df = sub_df[sub_df['beds'] == 3]
-
+            b4_df=sub_df[sub_df['beds']==4]
+            b5_df=sub_df[sub_df['beds']==5]
+            b05_df=sub_df[sub_df['beds']==0.5]
             # Calculate medians safely (If no 3-beds exist, it returns 0 instead of crashing)
             avgrent_one = safe_int(b1_df['actual_price'].median()) 
             avgrent_two = safe_int(b2_df['actual_price'].median()) 
             avgrent_three = safe_int(b3_df['actual_price'].median())
+            avgrent_four = safe_int(b4_df['actual_price'].median())
+            avgrent_five = safe_int(b5_df['actual_price'].median())
+            avgrent_05 = safe_int(b05_df['actual_price'].median())
 
             # Calculate total square meterage rates safely
             total_price = sub_df['actual_price'].sum()
@@ -635,10 +671,83 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             floor1 = b1_df['floor'].sum()
             floor2 = b2_df['floor'].sum()
             floor3 = b3_df['floor'].sum()
+            floor4 = b4_df['floor'].sum()
+            floor5 = b5_df['floor'].sum()
+            floor05 = b05_df['floor'].sum()
+
+            # Convert columns to numeric
+            b1_df['actual_price'] = pd.to_numeric(b1_df['actual_price'], errors='coerce')
+            b1_df['floor'] = pd.to_numeric(b1_df['floor'], errors='coerce') # Use your actual floor column name
+
+            b2_df['actual_price'] = pd.to_numeric(b2_df['actual_price'], errors='coerce')
+            b2_df['floor'] = pd.to_numeric(b2_df['floor'], errors='coerce') # Use your actual floor column name
             
-            sqrent_one = int(b1_df['actual_price'].sum() / floor1) if floor1 > 0 else 0
-            sqrent_two = int(b2_df['actual_price'].sum() / floor2) if floor2 > 0 else 0
-            sqrent_three = int(b3_df['actual_price'].sum() / floor3) if floor3 > 0 else 0
+            b3_df['actual_price'] = pd.to_numeric(b3_df['actual_price'], errors='coerce')
+            b3_df['floor'] = pd.to_numeric(b3_df['floor'], errors='coerce') # Use your actual floor column name
+
+            
+            b4_df['actual_price'] = pd.to_numeric(b4_df['actual_price'], errors='coerce')
+            b4_df['floor'] = pd.to_numeric(b4_df['floor'], errors='coerce') # Use your actual floor column name
+
+            b5_df['actual_price'] = pd.to_numeric(b5_df['actual_price'], errors='coerce')
+            b5_df['floor'] = pd.to_numeric(b5_df['floor'], errors='coerce') # Use your actual floor column name
+
+            b05_df['actual_price'] = pd.to_numeric(b05_df['actual_price'], errors='coerce')
+            b05_df['floor'] = pd.to_numeric(b05_df['floor'], errors='coerce') # Use your actual floor column name
+
+            sqrent_05   = int(safe_sum_price(b05_df) / floor05) if floor05 > 0 else 0
+            sqrent_one  = int(safe_sum_price(b1_df)   / floor1)  if floor1 > 0  else 0
+            sqrent_two  = int(safe_sum_price(b2_df)   / floor2)  if floor2 > 0  else 0
+            sqrent_three= int(safe_sum_price(b3_df)   / floor3)  if floor3 > 0  else 0
+            sqrent_four = int(safe_sum_price(b4_df)   / floor4)  if floor4 > 0  else 0
+            sqrent_five = int(safe_sum_price(b5_df)   / floor5) if floor5 > 0 else 0
+
+    
+            sub_df['first_seen_date'] = pd.to_datetime(sub_df['first_seen_date'], format='mixed', errors='coerce')
+            sub_df['last_seen_date'] = pd.to_datetime(sub_df['last_seen_date'], format='mixed', errors='coerce')
+            sub_df['days_on_market'] = (sub_df['last_seen_date'] - sub_df['first_seen_date']).dt.days
+            sub_df['days_on_market'] = pd.to_numeric(sub_df['days_on_market'], errors='coerce')
+
+            bins = [0, 7, 14, 30, float('inf')]
+            labels = ['0-7', '8-14', '15-30', '30+']
+            sub_df['dom_bucket'] = pd.cut(sub_df['days_on_market'], bins=bins, labels=labels, right=True)
+
+            dom_bucket_counts = (
+                sub_df['dom_bucket']
+                .value_counts()
+                .reindex(labels, fill_value=0)
+            )
+            print("MIN First Seen:", sub_df['first_seen_date'].min())
+            print("MAX Last Seen:", sub_df['last_seen_date'].max())
+            dom_chart_data = [{"range": label, "count": int(dom_bucket_counts[label])} for label in labels]
+
+            q1 = sub_df['actual_price'].quantile(0.25)
+            q3 = sub_df['actual_price'].quantile(0.75)
+            iqr = q3 - q1
+            lower_fence = q1 - 1.5 * iqr
+            upper_fence = q3 + 1.5 * iqr
+
+            scatter_df = sub_df[
+                (sub_df['actual_price'] >= lower_fence) &
+                (sub_df['actual_price'] <= upper_fence)
+            ].copy()
+
+            outliers_excluded: int = len(sub_df) - len(scatter_df)
+
+            scatter_data = scatter_df[['actual_price', 'predicted_price', 'verdict']].dropna().to_dict(orient='records')
+            scatter_data = [
+                {
+                    "asking": round(row['actual_price'], 0),
+                    "predicted": round(row['predicted_price'], 0),
+                    "verdict": row['verdict']
+                }
+                for row in scatter_data
+            ]
+            avg_var = round(sub_df['perk'].mean(), 2) if not sub_df['perk'].empty else 0
+
+            port_pulse= get_market_pulse(suburb, sub_df)
+          
+
         # 5. Return JSON to React (Variables will be 0 if the suburb was empty)
         return {
             "suburb": suburb,
@@ -655,7 +764,22 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             'avgrent_three' : avgrent_three,
             'one_bed': one_bed,
             'two_bed': two_bed,
-            'three_bed': three_bed 
+            'three_bed': three_bed,
+            'sqrent_four':sqrent_four,
+            'sqrent_five':sqrent_five,
+            'sqrent_half':sqrent_05,
+            'avgrent_four': avgrent_four,
+            'avgrent_five': avgrent_five,
+            'avgrent_half': avgrent_05,
+            'four_bed':four_bed,
+            'five_bed':five_bed,
+            'half_bed':zero_bed,
+            'dom_chart_data': dom_chart_data,
+            "scatter_data": scatter_data,
+            'avg_var': avg_var,
+            "outliers_excluded": outliers_excluded,
+            'port_pulse': port_pulse
+
         }
  
     except Exception as e:
@@ -812,67 +936,69 @@ def predict_quick_price(prop: QuickAnalyzeInput):
     input_price = prop.asking_price
     if isinstance(input_price, str):
         input_price = float(str(input_price).replace('R', '').replace(' ', '').replace(',', ''))
-    
+
     # Extract scalar values from input_df for comparison
     input_val = input_df.iloc[0]
 
     # --- 1. Filter by mandatory baseline features (Must Match) ---
-    # We only want to compare against properties in the exact same location and type
+    # Location + proptype already enforced here
     potential_matches = lookup_db[
         (lookup_db['location'].str.lower().str.strip() == clean_input_location) &
         (lookup_db['proptype'].str.lower() == clean_proptype.lower())
     ].copy()
 
+    matched_urls = []
+
     if not potential_matches.empty:
-        # --- 2. Define our flexible matching rules ---
-        
-        # Rule A: Price must be within R7,500
-        # (Assuming your lookup_db['price'] is stored as the raw number, not log)
-        price_match = abs(potential_matches['price'] - input_price) <= 7500
-        
-        # Rule B: Floor size must be within 7 square meters
-        floor_match = abs(potential_matches['floor'] - input_val['floor']) <= 7
-        
-        # Rule C: Exact matches for binary/categorical features
+        # --- 2. Define matching rules ---
+
+        # Floor: bypass if input floor not given, else strict 7 sqm radius
+        if input_val['floor'] > 0:
+            floor_match = abs(potential_matches['floor'] - input_val['floor']) <= 7
+        else:
+            floor_match = pd.Series(True, index=potential_matches.index)
+
+        # Must sit inside Volora's predicted bounds — hard rule
+        price_bounds = (np.exp(potential_matches['price']) >= lower_price) & (np.exp(potential_matches['price']) <= high_price)
+
+        # Rule: Exact matches for binary/categorical features (used for % score only)
         exact_features = [
-            'beds', 'bath', 'gar', 'has_pool', 'is_gated', 'has_study', 
-            'has_garden', 'mentions_renovated', 'mentions_luxury', 
-            'mentions_new_build', 'has_balcony', 'has_patio', 'has_internet', 
-            'is_furnished', 'has_backup', 'is_HouseShare', 'has_sercurity', 
+            'gar', 'has_pool', 'is_gated', 'has_study',
+            'has_garden', 'mentions_renovated', 'mentions_luxury',
+            'mentions_new_build', 'has_balcony', 'has_patio', 'has_internet',
+            'is_furnished', 'has_backup', 'is_HouseShare', 'has_sercurity',
             'has_ocean_view', 'has_mountain_view', 'near_promenade'
         ]
-        
-        # Create a DataFrame of True/False for every exact feature match
+
         match_scores = pd.DataFrame(index=potential_matches.index)
         for feat in exact_features:
-            # Map frontend names to DB names if they differ (e.g. 'beds' vs 'bed')
-            db_col = 'bed' if feat == 'beds' else feat 
-            
+            db_col = 'bed' if feat == 'beds' else feat
             if db_col in potential_matches.columns and feat in input_df.columns:
                 match_scores[feat] = potential_matches[db_col] == input_val[feat]
 
-        # Add our flexible rules to the scoring matrix
-        match_scores['price_flex'] = price_match
         match_scores['floor_flex'] = floor_match
-        
+        match_scores['price_bounds'] = price_bounds
+
         # --- 3. Calculate the percentage score ---
-        # Total columns checked
         total_features_checked = len(match_scores.columns)
-        
-        # Sum the True values across the rows to get total matches per property
         potential_matches['match_percentage'] = (match_scores.sum(axis=1) / total_features_checked) * 100
 
-        # --- 4. Filter for matches >= 76% ---
-        strong_matches = potential_matches[potential_matches['match_percentage'] >= 75.0]
+        # --- 4. Hard rules: floor, bounds, location/proptype (already filtered),
+        #         same beds, same bath — THEN 65% feature match threshold ---
+        strong_matches = potential_matches[
+            (potential_matches['match_percentage'] >= 65.0) &
+            (potential_matches['beds'] == input_val['beds']) &
+            (potential_matches['bath'] == input_val['bath']) &
+            (price_bounds) &
+            (floor_match)
+        ]
 
         if not strong_matches.empty:
-            
-            # Sort by the highest match percentage first
             strong_matches = strong_matches.sort_values(by='match_percentage', ascending=False)
-            
-            # Extract the URLs
+            strong_matches = strong_matches.head(6)
             matched_urls = strong_matches['url'].tolist()
-            
+
+          
             
             # You can now attach `matched_urls` to your FastAPI return dictionary!
     # 6. Return exact keys Next.js expects
@@ -885,5 +1011,5 @@ def predict_quick_price(prop: QuickAnalyzeInput):
         "percent_diff": round(percentage_difference, 2),
         'price_diff': round(price_difference, 2),
         "listing_input": Listing_input,
-        'matches': matched_urls if 'matched_urls' in locals() else []
+        'matches': matched_urls 
     }
