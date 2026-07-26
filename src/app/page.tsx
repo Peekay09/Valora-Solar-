@@ -1,4 +1,6 @@
 "use client"; // Enables dynamic clicking and tab state
+import { Bar, Cell, BarChart as ReBarChart } from "recharts";
+
 import {
   Tabs,
   TabsContent,
@@ -7,8 +9,9 @@ import {
 } from "@/components/Tabs";
 import { KineticText } from "@/components/ui/kinetic-text";
 import { MorphingText } from "@/components/ui/morphing-text";
-import { BarChart as TremorBarChart } from "@tremor/react";
 import { cx } from '@/lib/utils';
+import "tailwindcss";
+
 import {
   RiArrowDownLine,
   RiArrowDownSLine,
@@ -16,7 +19,6 @@ import {
   RiArrowUpLine,
   RiArrowUpSLine,
   RiBuilding4Line,
-  RiCheckboxCircleLine,
   RiCheckLine,
   RiCloseLine,
   RiContactsBook3Line,
@@ -37,7 +39,7 @@ import {
   RiUploadFill,
   RiUserLine
 } from '@remixicon/react';
-import { BarChart, Card, DonutChart } from '@tremor/react';
+import { BarChart, Card } from '@tremor/react';
 
 import {
   AutoComplete,
@@ -53,6 +55,7 @@ import {
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CartesianGrid, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from "recharts";
+
 
 function AskingVsVoloraScatter({ scatterData }: { scatterData: any[] }) {
   if (!scatterData || scatterData.length === 0) {
@@ -117,7 +120,62 @@ export type CptMarker = {
   deal_score?: number;
   deal_status?: string;
 };
+function DonutInteractive({ arcs, radius, circumference, defaultLabel }: {
+  arcs: { key: string; label: string; pct: number; color: string; len: number; offset: number }[];
+  radius: number;
+  circumference: number;
+  defaultLabel: string;
+}) {
+  const [active, setActive] = useState<string | null>(null);
+  const activeArc = arcs.find((a) => a.key === active);
 
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="180" height="180" viewBox="0 0 160 160">
+        <circle cx="80" cy="80" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="16" />
+        {arcs.map((arc) => (
+          <circle
+            key={arc.key}
+            cx="80" cy="80" r={radius} fill="none"
+            stroke={arc.color}
+            strokeWidth={active === arc.key ? 20 : 16}
+            strokeDasharray={`${arc.len} ${circumference - arc.len}`}
+            strokeDashoffset={arc.offset}
+            transform="rotate(-90 80 80)"
+            style={{
+              cursor: "pointer",
+              opacity: active && active !== arc.key ? 0.35 : 1,
+              transition: "all 150ms ease",
+            }}
+            onMouseEnter={() => setActive(arc.key)}
+            onMouseLeave={() => setActive(null)}
+          />
+        ))}
+        <text x="80" y="80" textAnchor="middle" fontSize="20" fontWeight="700" fill="#0f172a">
+          {activeArc ? `${activeArc.pct}%` : defaultLabel}
+        </text>
+        <text x="80" y="98" textAnchor="middle" fontSize="10" fill="#64748b">
+          {activeArc ? activeArc.label : "Bargain"}
+        </text>
+      </svg>
+
+      <div className="flex gap-4 mt-4 text-xs">
+        {arcs.map((arc) => (
+          <span
+            key={arc.key}
+            onMouseEnter={() => setActive(arc.key)}
+            onMouseLeave={() => setActive(null)}
+            className="flex items-center gap-1.5 cursor-pointer select-none"
+            style={{ opacity: active && active !== arc.key ? 0.4 : 1, transition: "opacity 150ms ease" }}
+          >
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: arc.color }} />
+            {arc.label} {arc.pct}%
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 // Extracted the Login Form cleanly into its own component
 const AgentLoginForm = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
   const [formTab, setFormTab] = useState('login');
@@ -1203,6 +1261,68 @@ export default function VoloraPlatform() {
 }
 const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
+  function BiasHistogram({ data }: { data: any }) {
+    if (!data?.values?.length) {
+      return <p className="text-sm text-slate-400 p-6">Not enough listings to assess model bias here.</p>;
+    }
+
+    const bins = [-40, -25, -10, 0, 10, 25, 40];
+    const labels = ["<-25%", "-25 to -10%", "-10 to 0%", "0 to 10%", "10 to 25%", ">25%"];
+    const counts = new Array(labels.length).fill(0);
+
+    data.values.forEach((v: number) => {
+      for (let i = 0; i < bins.length - 1; i++) {
+        if (v >= bins[i] && v < bins[i + 1]) { counts[i]++; break; }
+      }
+    });
+
+    const chartData = labels.map((l, i) => ({ range: l, count: counts[i] }));
+
+    return (
+      <div>
+        <ResponsiveContainer width="100%" height={220}>
+          <ReBarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="range" tick={{ fontSize: 10 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+            <Tooltip />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              {chartData.map((entry, idx) => (
+                <Cell key={idx} fill={entry.range.includes('-') ? "#f43f5e" : entry.range === "0 to 10%" ? "#94a3b8" : "#10b981"} />
+              ))}
+            </Bar>
+          </ReBarChart>
+        </ResponsiveContainer>
+        <p className="text-xs text-slate-500 mt-2">
+          Model {data.direction === "balanced" ? "tracks this suburb evenly" : `${data.direction} in this suburb`} — avg bias {data.avg_bias > 0 ? '+' : ''}{data.avg_bias}%
+        </p>
+      </div>
+    );
+  }
+
+  function SuburbOutlierChart({ data, macroMean }: { data: any[]; macroMean: number }) {
+    if (!data || data.length === 0) {
+      return <p className="text-sm text-slate-400 p-6">Not enough suburb variety in this macro region yet.</p>;
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height={Math.max(200, data.length * 40)}>
+        <ReBarChart data={data} layout="vertical" margin={{ left: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+          <XAxis type="number" domain={[0, 100]} />
+          <YAxis type="category" dataKey="location" width={110} tick={{ fontSize: 12 }} />
+          <Tooltip formatter={(v: any) => [`${v}`, "Deal Score"]} />
+          <ReferenceLine x={macroMean} stroke="#64748b" strokeDasharray="4 4" label={{ value: "Macro avg", fontSize: 10, position: "top" }} />
+          <Bar dataKey="deal_score" radius={[0, 4, 4, 0]}>
+            {data.map((entry, idx) => (
+              <Cell key={idx} fill={entry.is_outlier ? "#f59e0b" : "#94a3b8"} />
+            ))}
+          </Bar>
+        </ReBarChart>
+      </ResponsiveContainer>
+    );
+  }
+
   useEffect(() => {
     fetch("http://localhost:8000/api/locations")
       .then((res) => {
@@ -1293,11 +1413,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     { Location: 'Rondebosch', 'Active Deals': 14 },
   ];
 
-  const portfolioBreakup = [
-    { name: 'Bargain (Arbitrage)', value: backendStats ? backendStats.port_pulse >= 75 ? 1 : 0 : 0, color: 'bg-emerald-500' },
-    {name: 'Overpriced', value: backendStats ? backendStats.port_pulse <= 35 ? 1 : 0 : 0, color: 'bg-red-500' },
-    {name:'Good-Fair',value: backendStats ? backendStats.port_pulse  }
-  ];
+  const portfolioBreakup = backendStats?.port_pulse ?? [];
+
 
   const recentTransactions = [
     { id: 1, type: 'New Mandate', location: 'Sea Point, 2 Bed', amount: '+ R 18,500', isPositive: true },
@@ -1714,31 +1831,57 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                       showAnimation={true}
                     />
                   </Card>
-                  {"}"}
+                  <Card className="lg:col-span-4 flex flex-col gap-6">
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Model Accuracy in This Suburb</h3>
+                    <p className="text-sm text-slate-500 mb-6">Predicted vs actual price spread across active listings</p>
+                    <BiasHistogram data={backendStats?.bias_chart_data} />
+                  </Card>
 
                   {/* Right Side Column (Spans 4) */}
+                  {/* Right Side: Donut + Outlier Chart, side by side */}
                   <div className="lg:col-span-4 flex flex-col gap-6">
 
                     {/* Donut Chart */}
                     <Card className="shadow-sm border-slate-200 p-6 flex-1">
                       <h3 className="text-lg font-bold text-slate-900 mb-1">Portfolio Breakup</h3>
                       <p className="text-sm text-slate-500 mb-6">Current deal distribution</p>
-                      <div className="flex items-center justify-center">
-                        <DonutChart
-                          className="h-40"
-                          data={portfolioBreakup}
-                          category="value"
-                          index="name"
-                          colors={["emerald", "amber", "rose"]}
-                          showLabel={true}
-                        />
-                      </div>
-                      <div className="mt-6 flex justify-between items-center px-4">
-                        <p className="text-2xl font-bold text-slate-900">45%</p>
-                        <p className="text-sm font-medium text-emerald-600">Bargain Deals</p>
-                      </div>
+
+                      {(() => {
+                        const dealPct = backendStats?.market_pulse?.[0] ?? 0;
+                        const fairPct = backendStats?.market_pulse?.[1] ?? 0;
+                        const steepPct = backendStats?.market_pulse?.[2] ?? 0;
+
+                        const segments = [
+                          { key: "deal", label: "Bargain", pct: dealPct, color: "#10b981" },
+                          { key: "fair", label: "Fair", pct: fairPct, color: "#f59e0b" },
+                          { key: "steep", label: "Steep", pct: steepPct, color: "#f43f5e" },
+                        ];
+
+                        const radius = 60;
+                        const circumference = 2 * Math.PI * radius;
+
+                        let cumulativeOffset = 0;
+                        const arcs = segments.map((seg) => {
+                          const len = (seg.pct / 100) * circumference;
+                          const offset = -cumulativeOffset;
+                          cumulativeOffset += len;
+                          return { ...seg, len, offset };
+                        });
+
+                        return (
+                          <DonutInteractive arcs={arcs} radius={radius} circumference={circumference} defaultLabel={`${dealPct}%`} />
+                        );
+                      })()}
                     </Card>
+
                   </div>
+
+                  {/* Suburb Pattern Breaks — sits in the remaining space next to the donut column */}
+                  <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Suburb Pattern Breaks</h3>
+                    <p className="text-sm text-slate-500 mb-6">Amber = outside macro-region norm</p>
+                    <SuburbOutlierChart data={backendStats?.outlier_chart_data ?? []} macroMean={backendStats?.macro_deal_score_mean ?? 0} />
+                  </Card>
 
                 </div>
 
@@ -1759,28 +1902,144 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                   </Card>
 
                   {/* Recent Transactions List (Spans 4) */}
+                  {/* Fastest Movers — Macro Suburb Top 6 */}
                   <Card className="lg:col-span-4 shadow-sm border-slate-200 p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6">Recent Activity</h3>
-                    <div className="space-y-6">
-                      {recentTransactions.map((tx) => (
-                        <div key={tx.id} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-full ${tx.isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
-                              <RiCheckboxCircleLine className="w-4 h-4" />
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Fastest Movers</h3>
+                    <p className="text-sm text-slate-500 mb-6">Top 6 quickest-leasing listings in the wider area</p>
+
+                    <div className="flex flex-col gap-3">
+                      {(backendStats?.mac_top6 ?? []).map((item: any, idx: number) => {
+                        const isFast = item.vs_macro_avg_pct >= 0;
+                        return (
+                          <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                                <RiFlashlightLine className="w-4 h-4 text-slate-500" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-700">{item.location}</p>
+                                <p className="text-xs text-slate-400">Days on Market</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-sm font-bold text-slate-900">{tx.type}</p>
-                              <p className="text-xs text-slate-500">{tx.location}</p>
+
+                            <div className="flex items-center gap-3">
+                              <p className="text-xl font-bold text-slate-900">{item.days_on_market}d</p>
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${isFast ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                }`}>
+                                {isFast ? '↑' : '↓'} {Math.abs(item.vs_macro_avg_pct)}%
+                              </span>
                             </div>
                           </div>
-                          <p className={`text-sm font-bold ${tx.isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
-                            {tx.amount}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
+
+                    {(!backendStats?.mac_top6 || backendStats.mac_top6.length === 0) && (
+                      <p className="text-sm text-slate-400 mt-4">No macro-area data available yet.</p>
+                    )}
                   </Card>
 
+                </div>
+
+                {/* Trending Stats Row — Seamless Flow (No Outer Borders) */}
+                <div className="w-full flex flex-col lg:flex-row gap-6 mt-4">
+
+                  {/* LEFT SIDE BLOCK (Revenue & Overdue) */}
+                  <div className="flex-1 bg-transparent">
+                    <div className="grid grid-cols-2 divide-x divide-slate-100 h-full">
+
+                      <div className="flex flex-col justify-center px-6 py-5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-500">Revenue</span>
+                          <span className="text-[10px] font-bold text-emerald-600">+4.75%</span>
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">$405,091.00</span>
+                      </div>
+
+                      <div className="flex flex-col justify-center px-6 py-5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-500">Overdue Invoices</span>
+                          <span className="text-[10px] font-bold text-rose-600">+54.02%</span>
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">$12,787.00</span>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* RIGHT SIDE BLOCK (Outstanding & Expenses) */}
+                  <div className="flex-1 bg-transparent">
+                    <div className="grid grid-cols-2 divide-x divide-slate-100 h-full">
+
+                      <div className="flex flex-col justify-center px-6 py-5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-500">Outstanding Invoices</span>
+                          <span className="text-[10px] font-bold text-rose-600">-1.39%</span>
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">$245,988.00</span>
+                      </div>
+
+                      <div className="flex flex-col justify-center px-6 py-5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-500">Expenses</span>
+                          <span className="text-[10px] font-bold text-rose-600">+10.18%</span>
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">$30,156.00</span>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+                {/* Deep Dive Tabs Section */}
+                <div className="w-full mt-6">
+                  <Tabs defaultValue="market_intel">
+
+                    {/* The Full-Width Tab Bar */}
+                    <TabsList className="grid w-full grid-cols-3" variant="solid">
+                      <TabsTrigger value="market_intel">Market Intelligence</TabsTrigger>
+                      <TabsTrigger value="financials">Financials</TabsTrigger>
+                      <TabsTrigger value="accuracy">Model Accuracy</TabsTrigger>
+                    </TabsList>
+
+                    {/* TAB 1: Market Intel (Map & Suburb Data) */}
+                    <TabsContent value="market_intel" className="mt-4 focus:outline-none">
+                      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">Market Intel</h3>
+                        <p className="text-sm text-slate-500 mb-6">Current active deals and layout across the suburb.</p>
+
+                        <div className="h-64 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                          <span className="text-sm font-medium text-slate-400">Map or Suburb Insights go here</span>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    {/* TAB 2: Financials (Revenue & Pipeline) */}
+                    <TabsContent value="financials" className="mt-4 focus:outline-none">
+                      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">Financial Breakdown</h3>
+                        <p className="text-sm text-slate-500 mb-6">Revenue tracking and pending invoices.</p>
+
+                        <div className="h-64 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                          <span className="text-sm font-medium text-slate-400">Financial Charts go here</span>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    {/* TAB 3: Model Accuracy */}
+                    <TabsContent value="accuracy" className="mt-4 focus:outline-none">
+                      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">Model Accuracy</h3>
+                        <p className="text-sm text-slate-500 mb-6">Predicted vs actual price spread across active listings.</p>
+
+                        {/* You can literally drop your existing <BiasHistogram /> right here! */}
+                        <div className="h-64 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                          <span className="text-sm font-medium text-slate-400">BiasHistogram Component goes here</span>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                  </Tabs>
                 </div>
               </>
             )}

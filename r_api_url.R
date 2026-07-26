@@ -52,7 +52,22 @@ function(url, suburb="", macro_suburb="", region="", res) {
     df_url <- df_url %>% 
       mutate(struc = str_squish(struc)) %>% 
       separate(struc, into = c('beds', 'bath', 'gar', 'leftover'), sep = ' ', fill = 'right', extra = 'drop')
-    
+
+    df_url <- df_url %>%
+    mutate(
+    erf_size = str_remove_all(erf_size, "(?<=\\d)\\s+(?=\\d)"),  # collapse "3 715" -> "3715"
+    erf_size = suppressWarnings(readr::parse_number(as.character(erf_size)))
+    )
+    df_url <- df_url %>%
+    mutate(
+    floor = str_remove_all(floor, "(?<=\\d)\\s+(?=\\d)"),
+    floor = suppressWarnings(readr::parse_number(as.character(floor)))
+    )
+    df_url <- df_url %>%
+    mutate(
+    floor = str_remove_all(floor, "(?<=\\d)\\s+(?=\\d)"),
+    floor = suppressWarnings(readr::parse_number(as.character(floor)))
+    )
     df_url <- df_url %>% 
       mutate(across(c(beds, bath, gar, leftover, floor, erf_size), ~ suppressWarnings(readr::parse_number(as.character(.)))))
     
@@ -119,14 +134,17 @@ function(url, suburb="", macro_suburb="", region="", res) {
         
         is_furnished        = as.integer(str_detect(feat_clean, '(?i)(?<!un)(?<!not )\\bfurnished\\b')),
         has_pool           = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )\\bpool\\b(?! table)')),
-        has_internet      = as.integer(str_detect(desc_clean, '(?i)fibre-ready|wifi|wi-fi'))|| as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )(internet|fibre)')),
-
+        has_internet = as.integer(
+          (str_detect(desc_clean, '(?i)fibre-ready|fibre ready|wifi|wi-fi|fibre|internet') |
+          str_detect(feat_clean, '(?i)fibre|internet|wifi|wi-fi')) &
+          !str_detect(desc_clean, '(?i)no\\s+(internet|fibre|wifi|wi-fi)|not\\s+includ\\w*\\s+(internet|fibre|wifi)|without\\s+(internet|fibre|wifi)')
+        ),
         has_inverter       = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )inverter')),
         has_solar_panels   = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )solar panels')),
         has_garden         = as.integer(str_detect(feat_clean, '(?i)garden')),
         has_backup         = has_inverter + has_solar_panels,
         mentions_houseshare = as.integer(str_detect(desc_clean, '(?i)house[- ]?share|room to rent|room available|shared house|shared accommodation|shared living|single room|private room|roommate|room only|rent a room|sharing (house|home|property)|co[- ]?living|communal living|bachelor room|lodger')),
-        has_sercurity      = as.integer(str_detect(desc_clean, '(?i)24-hour security|24-hour manned security|24/7 security|security estate|secure estate|guard|access control|boom gate|electric fence|armed response')),
+        has_sercurity      = as.integer(str_detect(desc_clean, '(?i)24-hour security|24-hour manned security|24/7 security|security estate|secure estate|guard|access control|boom gate|electric fence|armed response|CCTV cameras|security cameras|security system|security patrol|security guard|security company|security service|security personnel|security measures|security features')),
         in_estate          = as.integer(str_detect(desc_clean, '(?i)\\bestate\\b')),
         in_complex         = as.integer(str_detect(desc_clean, '(?i)\\bcomplex\\b')),
         has_mountain_view  = as.integer(str_detect(desc_clean, "(?i)mountain views?|table mountain views?|lion'?s head")),

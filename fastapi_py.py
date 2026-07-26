@@ -573,6 +573,13 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
     dom_chart_data = [{"range": l, "count": 0} for l in ['0-7', '8-14', '15-30', '30+']]
     scatter_data = []
     avg_var=0
+    market_pulse = [0, 0, 0]
+    mac_top6_data = []
+    mac_velo = 0
+    outliers_excluded = 0
+    outlier_chart_data = []
+    macro_deal_score_mean = 0
+    bias_chart_data = {"values": [], "avg_bias": 0, "direction": "balanced"}
 
 
     try:
@@ -595,8 +602,19 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
         sub_df = df[df['location'].astype(str).str.lower().str.strip() == safe_suburb].copy()
         if sub_df.empty:
             sub_df = df[df['macro_suburb'].astype(str).str.lower().str.strip() == safe_suburb].copy()
- 
-        
+
+
+        if not sub_df.empty:
+            # Pull the macro_suburb this suburb belongs to (take the first non-null value found)
+            matched_macro = sub_df['macro_suburb'].dropna().iloc[0] if sub_df['macro_suburb'].notna().any() else None
+
+            if matched_macro:
+                mac_df = df[df['macro_suburb'].astype(str).str.lower().str.strip() == str(matched_macro).lower().strip()].copy()
+            else:
+                mac_df = pd.DataFrame()
+        else:
+            mac_df = pd.DataFrame()
+
         num_sub = len(sub_df)
  
         # 4. Only run calculations if we actually found listings for this suburb
@@ -744,11 +762,120 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
                 for row in scatter_data
             ]
             avg_var = round(sub_df['perk'].mean(), 2) if not sub_df['perk'].empty else 0
+            market_pulse = get_market_pulse(suburb, sub_df)  # [deal_pct, fair_pct, steep_pct]
 
-            port_pulse= get_market_pulse(suburb, sub_df)
-          
+            verdict_counts = sub_df['verdict'].value_counts()
 
-        # 5. Return JSON to React (Variables will be 0 if the suburb was empty)
+            mac_df['first_seen_date']= pd.to_datetime(mac_df['first_seen_date'], format='mixed', errors='coerce')
+            mac_df['last_seen_date']= pd.to_datetime(mac_df['last_seen_date'], format='mixed', errors='coerce')
+            mac_df['days_on_market'] = (mac_df['last_seen_date'] - mac_df['first_seen_date']).dt.days
+            mac_df['days_on_market'] = pd.to_numeric(mac_df['days_on_market'], errors='coerce')
+            mac_df_filtered = mac_df[mac_df['days_on_market'] > 0].dropna(subset=['days_on_market'])
+
+            # Group by the individual 'location' (suburb) within this macro_suburb region,
+            # keep only the fastest-moving listing per location
+            mac_fastest_per_suburb = (
+                mac_df_filtered
+                .sort_values('days_on_market', ascending=True)
+                .groupby('location', as_index=False)
+                .first()
+            )
+
+            # Now take the top 6 across those grouped/deduped locations
+            mac_top6 = mac_fastest_per_suburb.sort_values('days_on_market', ascending=True).head(6).copy()
+            mac_velo = mac_top6['days_on_market'].mean() if not mac_top6.empty else 0
+            mac_avg = mac_df['days_on_market'].mean() if not mac_df.empty else 0
+
+            mac_top6_data = [
+                {
+                    "days_on_market": int(row['days_on_market']) if pd.notna(row['days_on_market']) else None,
+                    'location':str(row['location']),
+                    "vs_macro_avg_pct": round(((mac_avg - row['days_on_market']) / mac_avg) * 100, 1) if mac_avg > 0 else 0,
+                }   
+                for _, row in mac_top6.iterrows()
+            ]
+            print(f"MAC_DF total rows: {len(mac_df)}, after DOM filter: {len(mac_df_filtered)}, unique locations: {mac_df_filtered['location'].nunique()}")
+
+            df_encoded2 = encode_with_label_encoders(mac_df, label_encoders)
+            expected_columns = mod4.feature_names_in_
+            df_encoded2 = df_encoded2.reindex(columns=expected_columns, fill_value=0)        
+            mac_df['log_pred'] = mod4.predict(df_encoded2)
+            mac_df['predicted_price'] = np.exp(mac_df['log_pred'])
+            mac_df['actual_price'] = np.exp(mac_df['price']) 
+            mac_df['perk'] = ((mac_df['predicted_price'] - mac_df['actual_price']) / mac_df['predicted_price']) * 100
+
+            if {'safety_score', 'civic_responsiveness_percentile', 'property_percentile'}.issubset(mac_df.columns):
+                safety = mac_df['safety_score'].mean()
+                civic = mac_df['civic_responsiveness_percentile'].mean()
+                prop_perc = mac_df['property_percentile'].mean()
+
+                if pd.isna(safety):
+                    safety = 50.0
+                if pd.isna(civic):
+                    civic = 50.0
+                if pd.isna(prop_perc):
+                    prop_perc = 50.0
+            else:
+                safety, civic, prop_perc = 50.0, 50.0, 50.0
+ 
+            # Calculate variance using the ML prediction
+            percent_diff = mac_df['perk'].mean()
+ 
+            score = calculate_volora_rental_score(
+                percent_diff=percent_diff,
+                safety_score=safety,
+                civic_score=civic,
+                prop_percentile=prop_perc
+            )
+            mac_df['deal_sheet'] = mac_df.apply(
+                    lambda row: calculate_volora_rental_score(
+                        percent_diff=row['perk'],
+                        safety_score=row.get('safety_score', np.nan),
+                        civic_score=row.get('civic_responsiveness_percentile', np.nan),
+                        prop_percentile=row.get('property_percentile', np.nan)
+                    ),
+                    axis=1
+                )            
+            suburb_scores = mac_df.groupby('location')['deal_sheet'].mean().dropna() if {'location', 'deal_sheet'}.issubset(mac_df.columns) else pd.Series(dtype=float).head(6)
+
+            if len(suburb_scores) > 1:
+                macro_mean = suburb_scores.mean()
+                macro_std = suburb_scores.std()
+
+                outlier_chart_data = [
+                    {
+                        "location": loc,
+                        "deal_score": round(score, 1),
+                        "is_outlier": bool(score > macro_mean + macro_std or score < macro_mean - macro_std)
+                    }
+                    for loc, score in suburb_scores.sort_values(ascending=False).items()
+                ]
+            else:
+                outlier_chart_data = []
+
+            macro_deal_score_mean = round(suburb_scores.mean(), 1) if not suburb_scores.empty else 0
+            perk_std = sub_df['perk'].std()
+            perk_n = sub_df['perk'].count()
+            perk_sem = perk_std / (perk_n ** 0.5) if perk_n > 0 else 0
+
+            # flag as biased only if avg deviates more than ~1.5 standard errors from zero
+            bias_threshold = 1.5 * perk_sem if perk_sem > 0 else 2
+
+            perk_values = sub_df['perk'].dropna().tolist()
+            bias_direction = (
+                "underestimates" if avg_var < -bias_threshold
+                else "overestimates" if avg_var > bias_threshold
+                else "balanced"
+            )
+
+            bias_chart_data = {
+                "values": [round(v, 1) for v in perk_values],
+                "avg_bias": avg_var,
+                "direction": bias_direction,
+                "bias_threshold": round(bias_threshold, 2)
+            }
+
+        # 5. Re turn JSON to React (Variables will be 0 if the suburb was empty)
         return {
             "suburb": suburb,
             "sub_count": num_sub,
@@ -778,8 +905,12 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             "scatter_data": scatter_data,
             'avg_var': avg_var,
             "outliers_excluded": outliers_excluded,
-            'port_pulse': port_pulse
-
+            "market_pulse": market_pulse,
+            "mac_top6": mac_top6_data, 
+            "mac_velo": mac_velo,
+            "outlier_chart_data": outlier_chart_data,
+            "macro_deal_score_mean": macro_deal_score_mean,
+            "bias_chart_data": bias_chart_data
         }
  
     except Exception as e:
