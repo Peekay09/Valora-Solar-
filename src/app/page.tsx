@@ -1950,18 +1950,18 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                       <div className="flex flex-col justify-center px-6 py-5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-500">Revenue</span>
-                          <span className="text-[10px] font-bold text-emerald-600">+4.75%</span>
+                          <span className="text-xs font-medium text-slate-500">Total Listings </span>
+                          <span className="text-[10px] font-bold text-emerald-600">{"Live"}</span>
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">$405,091.00</span>
+                        <span className="text-2xl font-bold text-slate-900">{backendStats?.one_bed}</span>
                       </div>
 
                       <div className="flex flex-col justify-center px-6 py-5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-500">Overdue Invoices</span>
-                          <span className="text-[10px] font-bold text-rose-600">+54.02%</span>
+                          <span className="text-xs font-medium text-slate-500">Median Rent</span>
+                          <span className="text-[10px] font-bold text-rose-600">{"Live"}</span>
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">$12,787.00</span>
+                        <span className="text-2xl font-bold text-slate-900">{backendStats?.avgrent_one}</span>
                       </div>
 
                     </div>
@@ -1973,18 +1973,18 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                       <div className="flex flex-col justify-center px-6 py-5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-500">Outstanding Invoices</span>
+                          <span className="text-xs font-medium text-slate-500">Rand/m²</span>
                           <span className="text-[10px] font-bold text-rose-600">-1.39%</span>
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">$245,988.00</span>
+                        <span className="text-2xl font-bold text-slate-900">{backendStats?.sqrent_one}</span>
                       </div>
 
                       <div className="flex flex-col justify-center px-6 py-5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-500">Expenses</span>
+                          <span className="text-xs font-medium text-slate-500">Avg Days on Market</span>
                           <span className="text-[10px] font-bold text-rose-600">+10.18%</span>
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">$30,156.00</span>
+                        <span className="text-2xl font-bold text-slate-900">{backendStats?.b1_velo}</span>
                       </div>
 
                     </div>

@@ -725,6 +725,53 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             sub_df['last_seen_date'] = pd.to_datetime(sub_df['last_seen_date'], format='mixed', errors='coerce')
             sub_df['days_on_market'] = (sub_df['last_seen_date'] - sub_df['first_seen_date']).dt.days
             sub_df['days_on_market'] = pd.to_numeric(sub_df['days_on_market'], errors='coerce')
+            sub_velo=sub_df['days_on_market'].mean() if not sub_df.empty else 0 
+
+            b05_df['first_seen_date'] = pd.to_datetime(b05_df['first_seen_date'], format='mixed', errors='coerce')
+            b05_df['last_seen_date'] = pd.to_datetime(b05_df['last_seen_date'], format='mixed', errors='coerce')
+            b05_df['days_on_market'] = (b05_df['last_seen_date'] - b05_df['first_seen_date']).dt.days
+            b05_df['days_on_market'] = pd.to_numeric(b05_df['days_on_market'], errors='coerce')
+            b05_velo=b05_df['days_on_market'].mean() if not b05_df.empty else 0 
+
+            b1_df['first_seen_date'] = pd.to_datetime(b1_df['first_seen_date'], format='mixed', errors='coerce')
+            b1_df['last_seen_date'] = pd.to_datetime(b1_df['last_seen_date'], format='mixed', errors='coerce')
+            b1_df['days_on_market'] = (b1_df['last_seen_date'] - b1_df['first_seen_date']).dt.days
+            b1_df['days_on_market'] = pd.to_numeric(b1_df['days_on_market'], errors='coerce')
+            b1_velo=b1_df['days_on_market'].mean() if not b1_df.empty else 0  
+
+            b2_df['first_seen_date'] = pd.to_datetime(b2_df['first_seen_date'], format='mixed', errors='coerce')
+            b2_df['last_seen_date'] = pd.to_datetime(b2_df['last_seen_date'], format='mixed', errors='coerce')
+            b2_df['days_on_market'] = (b2_df['last_seen_date'] - b2_df['first_seen_date']).dt.days
+            b2_df['days_on_market'] = pd.to_numeric(b2_df['days_on_market'], errors='coerce')
+            b2_velo=b2_df['days_on_market'].mean() if not b2_df.empty else 0   
+
+            b3_df['first_seen_date'] = pd.to_datetime(b3_df['first_seen_date'], format='mixed', errors='coerce')
+            b3_df['last_seen_date'] = pd.to_datetime(b3_df['last_seen_date'], format='mixed', errors='coerce')
+            b3_df['days_on_market'] = (b3_df['last_seen_date'] - b3_df['first_seen_date']).dt.days
+            b3_df['days_on_market'] = pd.to_numeric(b3_df['days_on_market'], errors='coerce')
+            b3_velo=b3_df['days_on_market'].mean() if not b3_df.empty else 0 
+
+            b4_df['first_seen_date'] = pd.to_datetime(b4_df['first_seen_date'], format='mixed', errors='coerce')
+            b4_df['last_seen_date'] = pd.to_datetime(b4_df['last_seen_date'], format='mixed', errors='coerce')
+            b4_df['days_on_market'] = (b4_df['last_seen_date'] - b4_df['first_seen_date']).dt.days
+            b4_df['days_on_market'] = pd.to_numeric(b4_df['days_on_market'], errors='coerce')
+            b4_velo=b4_df['days_on_market'].mean() if not b4_df.empty else 0
+
+            b5_df['first_seen_date'] = pd.to_datetime(b5_df['first_seen_date'], format='mixed', errors='coerce')
+            b5_df['last_seen_date'] = pd.to_datetime(b5_df['last_seen_date'], format='mixed', errors='coerce')
+            b5_df['days_on_market'] = (b5_df['last_seen_date'] - b5_df['first_seen_date']).dt.days
+            b5_df['days_on_market'] = pd.to_numeric(b5_df['days_on_market'], errors='coerce')
+
+            b5_velo =b5_df['days_on_market'].mean() if not b5_df.empty else 0
+  
+
+
+
+                       
+
+
+
+
 
             bins = [0, 7, 14, 30, float('inf')]
             labels = ['0-7', '8-14', '15-30', '30+']
@@ -910,7 +957,14 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             "mac_velo": mac_velo,
             "outlier_chart_data": outlier_chart_data,
             "macro_deal_score_mean": macro_deal_score_mean,
-            "bias_chart_data": bias_chart_data
+            "bias_chart_data": bias_chart_data,
+            'b5_velo':b5_velo,
+            'b4_velo':b4_velo,
+            'b3_velo':b3_velo,
+            'b2_velo':b2_velo,
+            'b1_velo':b1_velo,
+            'b05_velo':b05_velo
+
         }
  
     except Exception as e:
