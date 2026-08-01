@@ -580,6 +580,14 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
     outlier_chart_data = []
     macro_deal_score_mean = 0
     bias_chart_data = {"values": [], "avg_bias": 0, "direction": "balanced"}
+    _empty_deposit = {"chart": [], "coverage_pct": 0}
+    deposit_overall = _empty_deposit
+    deposit_b05 = _empty_deposit
+    deposit_b1 = _empty_deposit
+    deposit_b2 = _empty_deposit
+    deposit_b3 = _empty_deposit
+    deposit_b4 = _empty_deposit
+    deposit_b5 = _empty_deposit
 
 
     try:
@@ -725,53 +733,44 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             sub_df['last_seen_date'] = pd.to_datetime(sub_df['last_seen_date'], format='mixed', errors='coerce')
             sub_df['days_on_market'] = (sub_df['last_seen_date'] - sub_df['first_seen_date']).dt.days
             sub_df['days_on_market'] = pd.to_numeric(sub_df['days_on_market'], errors='coerce')
-            sub_velo=sub_df['days_on_market'].mean() if not sub_df.empty else 0 
+            sub_velo=round(sub_df['days_on_market'].mean(),1) if not sub_df.empty else 0 
 
             b05_df['first_seen_date'] = pd.to_datetime(b05_df['first_seen_date'], format='mixed', errors='coerce')
             b05_df['last_seen_date'] = pd.to_datetime(b05_df['last_seen_date'], format='mixed', errors='coerce')
             b05_df['days_on_market'] = (b05_df['last_seen_date'] - b05_df['first_seen_date']).dt.days
             b05_df['days_on_market'] = pd.to_numeric(b05_df['days_on_market'], errors='coerce')
-            b05_velo=b05_df['days_on_market'].mean() if not b05_df.empty else 0 
+            b05_velo=round(b05_df['days_on_market'].mean(),1) if not b05_df.empty else 0 
 
             b1_df['first_seen_date'] = pd.to_datetime(b1_df['first_seen_date'], format='mixed', errors='coerce')
             b1_df['last_seen_date'] = pd.to_datetime(b1_df['last_seen_date'], format='mixed', errors='coerce')
             b1_df['days_on_market'] = (b1_df['last_seen_date'] - b1_df['first_seen_date']).dt.days
             b1_df['days_on_market'] = pd.to_numeric(b1_df['days_on_market'], errors='coerce')
-            b1_velo=b1_df['days_on_market'].mean() if not b1_df.empty else 0  
+            b1_velo=round(b1_df['days_on_market'].mean()) if not b1_df.empty else 0  
 
             b2_df['first_seen_date'] = pd.to_datetime(b2_df['first_seen_date'], format='mixed', errors='coerce')
             b2_df['last_seen_date'] = pd.to_datetime(b2_df['last_seen_date'], format='mixed', errors='coerce')
             b2_df['days_on_market'] = (b2_df['last_seen_date'] - b2_df['first_seen_date']).dt.days
             b2_df['days_on_market'] = pd.to_numeric(b2_df['days_on_market'], errors='coerce')
-            b2_velo=b2_df['days_on_market'].mean() if not b2_df.empty else 0   
+            b2_velo=round(b2_df['days_on_market'].mean(),1) if not b2_df.empty else 0   
 
             b3_df['first_seen_date'] = pd.to_datetime(b3_df['first_seen_date'], format='mixed', errors='coerce')
             b3_df['last_seen_date'] = pd.to_datetime(b3_df['last_seen_date'], format='mixed', errors='coerce')
             b3_df['days_on_market'] = (b3_df['last_seen_date'] - b3_df['first_seen_date']).dt.days
             b3_df['days_on_market'] = pd.to_numeric(b3_df['days_on_market'], errors='coerce')
-            b3_velo=b3_df['days_on_market'].mean() if not b3_df.empty else 0 
+            b3_velo=round(b3_df['days_on_market'].mean(),1) if not b3_df.empty else 0 
 
             b4_df['first_seen_date'] = pd.to_datetime(b4_df['first_seen_date'], format='mixed', errors='coerce')
             b4_df['last_seen_date'] = pd.to_datetime(b4_df['last_seen_date'], format='mixed', errors='coerce')
             b4_df['days_on_market'] = (b4_df['last_seen_date'] - b4_df['first_seen_date']).dt.days
             b4_df['days_on_market'] = pd.to_numeric(b4_df['days_on_market'], errors='coerce')
-            b4_velo=b4_df['days_on_market'].mean() if not b4_df.empty else 0
+            b4_velo=round(b4_df['days_on_market'].mean(),1) if not b4_df.empty else 0
 
             b5_df['first_seen_date'] = pd.to_datetime(b5_df['first_seen_date'], format='mixed', errors='coerce')
             b5_df['last_seen_date'] = pd.to_datetime(b5_df['last_seen_date'], format='mixed', errors='coerce')
             b5_df['days_on_market'] = (b5_df['last_seen_date'] - b5_df['first_seen_date']).dt.days
             b5_df['days_on_market'] = pd.to_numeric(b5_df['days_on_market'], errors='coerce')
 
-            b5_velo =b5_df['days_on_market'].mean() if not b5_df.empty else 0
-  
-
-
-
-                       
-
-
-
-
+            b5_velo =round(b5_df['days_on_market'].mean(),1) if not b5_df.empty else 0
 
             bins = [0, 7, 14, 30, float('inf')]
             labels = ['0-7', '8-14', '15-30', '30+']
@@ -809,6 +808,13 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
                 for row in scatter_data
             ]
             avg_var = round(sub_df['perk'].mean(), 2) if not sub_df['perk'].empty else 0
+            b05_var = round(b05_df['perk'].mean(), 2) if not b05_df['perk'].empty else 0
+            b1_var = round(b1_df['perk'].mean(), 2) if not b1_df['perk'].empty else 0
+            b2_var = round(b2_df['perk'].mean(), 2) if not b2_df['perk'].empty else 0
+            b3_var = round(b3_df['perk'].mean(), 2) if not b3_df['perk'].empty else 0
+            b4_var = round(b4_df['perk'].mean(), 2) if not b4_df['perk'].empty else 0
+            b5_var = round(b5_df['perk'].mean(), 2) if not b5_df['perk'].empty else 0
+
             market_pulse = get_market_pulse(suburb, sub_df)  # [deal_pct, fair_pct, steep_pct]
 
             verdict_counts = sub_df['verdict'].value_counts()
@@ -922,6 +928,29 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
                 "bias_threshold": round(bias_threshold, 2)
             }
 
+            def get_deposit_chart(seg_df):
+                if seg_df.empty:
+                    return {"chart": [], "coverage_pct": 0}
+
+                seg_df = seg_df.copy()
+                lease_labels = ['Short Term', 'Long Term']
+                seg_df['lease_term_clean'] = seg_df['lease_term'].astype(str).str.strip().str.title()
+
+                lease_counts = seg_df['lease_term_clean'].value_counts().reindex(lease_labels, fill_value=0)
+                chart = [{"range": l, "count": int(lease_counts[l])} for l in lease_labels]
+
+                coverage_pct = round((seg_df['lease_term_clean'].isin(lease_labels).sum() / len(seg_df)) * 100, 1) if len(seg_df) > 0 else 0
+
+                return {"chart": chart, "coverage_pct": coverage_pct}
+
+            deposit_overall = get_deposit_chart(sub_df)
+            deposit_b05 = get_deposit_chart(b05_df)
+            deposit_b1 = get_deposit_chart(b1_df)
+            deposit_b2 = get_deposit_chart(b2_df)
+            deposit_b3 = get_deposit_chart(b3_df)
+            deposit_b4 = get_deposit_chart(b4_df)
+            deposit_b5 = get_deposit_chart(b5_df)
+
         # 5. Re turn JSON to React (Variables will be 0 if the suburb was empty)
         return {
             "suburb": suburb,
@@ -963,7 +992,20 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             'b3_velo':b3_velo,
             'b2_velo':b2_velo,
             'b1_velo':b1_velo,
-            'b05_velo':b05_velo
+            'b05_velo':b05_velo,
+            'b05_var': b05_var,
+            'b1_var':b1_var,
+            'b2_var':b2_var,
+            'b3_var':b3_var,
+            'b4_var':b4_var,
+            'b5_var':b5_var,
+            'deposit_overall': deposit_overall,
+            'deposit_b05': deposit_b05,
+            'deposit_b1': deposit_b1,
+            'deposit_b2': deposit_b2,
+            'deposit_b3': deposit_b3,
+            'deposit_b4': deposit_b4,
+            'deposit_b5': deposit_b5
 
         }
  

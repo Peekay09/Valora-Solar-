@@ -1,5 +1,5 @@
 "use client"; // Enables dynamic clicking and tab state
-import { Bar, Cell, BarChart as ReBarChart } from "recharts";
+import { Bar, Cell, BarChart as ReBarChart, TooltipProps } from "recharts";
 
 import {
   Tabs,
@@ -307,6 +307,7 @@ export default function VoloraPlatform() {
   const [selectedSuburb, setSelectedSuburb] = useState<string | null>(null);
   const [backendStats, setBackendStats] = useState<any>(null);
   const [isFetchingStats, setIsFetchingStats] = useState(false);
+  const [activeTab2, setActiveTab2] = useState('market_intel');
 
   // 2. LIVE MAP DATA STATE
   const [activeDeals, setActiveDeals] = useState<CptMarker[]>([]);
@@ -556,7 +557,6 @@ export default function VoloraPlatform() {
         setIsLoading(false);
         return;
       }
-
       const data = await response.json();
       setPredictionResult(data);
     } catch (error) {
@@ -1261,6 +1261,245 @@ export default function VoloraPlatform() {
 }
 const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
+  function InfoTooltip({ text }: { text: string }) {
+    const [show, setShow] = useState(false);
+    return (
+      <span className="relative inline-block ml-1">
+        <button
+          type="button"
+          onMouseEnter={() => setShow(true)}
+          onMouseLeave={() => setShow(false)}
+          onClick={() => setShow(!show)}
+          className="w-4 h-4 rounded-full bg-slate-600 text-white text-xs
+                   flex items-center justify-center cursor-help"
+        >
+          i
+        </button>
+        {show && (
+          <span className="absolute z-50 left-5 top-0 w-56 p-2 rounded-md
+                          bg-slate-800 text-slate-100 text-xs shadow-lg">
+            {text}
+          </span>
+        )}
+      </span>
+    );
+  }
+
+
+  function DepositRatioChart({ data, coveragePct }: { data: any[]; coveragePct: number }) {
+    if (!data || data.every((d: any) => d.count === 0)) {
+      return <p className="text-sm text-slate-400 p-6">Not enough deposit data captured for this suburb yet.</p>;
+    }
+
+    return (
+      <div>
+        <BarChart
+          className="h-56 mt-4"
+          data={data}
+          index="range"
+          categories={["count"]}
+          colors={["amber"]}
+          yAxisWidth={40}
+          showAnimation={true}
+        />
+        <p className="text-xs text-slate-500 mt-2">
+          Based on {coveragePct}% of listings with a captured deposit value.
+        </p>
+      </div>
+    );
+  }
+
+  interface Issue {
+    status: "completed" | "in progress" | "on hold";
+    value: number;
+    percentage: number;
+  }
+
+  interface DataEntry {
+    date: string;
+    issues: Issue[];
+  }
+
+  const data: DataEntry[] = [
+    {
+      date: "Jun 1, 24",
+      issues: [
+        { status: "completed", value: 47, percentage: 24.2 },
+        { status: "in progress", value: 83, percentage: 41.9 },
+        { status: "on hold", value: 67, percentage: 33.9 },
+      ],
+    },
+    {
+      date: "Jun 2, 24",
+      issues: [
+        { status: "completed", value: 20, percentage: 20.6 },
+        { status: "in progress", value: 97, percentage: 77.3 },
+        { status: "on hold", value: 12, percentage: 2.1 },
+      ],
+    },
+    {
+      date: "Jun 3, 24",
+      issues: [
+        { status: "completed", value: 30, percentage: 29.4 },
+        { status: "in progress", value: 45, percentage: 43.1 },
+        { status: "on hold", value: 66, percentage: 27.5 },
+      ],
+    },
+    {
+      date: "Jun 4, 24",
+      issues: [
+        { status: "completed", value: 41, percentage: 28.1 },
+        { status: "in progress", value: 18, percentage: 17.9 },
+        { status: "on hold", value: 70, percentage: 54.0 },
+      ],
+    },
+    {
+      date: "Jun 5, 24",
+      issues: [
+        { status: "completed", value: 55, percentage: 28.8 },
+        { status: "in progress", value: 14, percentage: 25.0 },
+        { status: "on hold", value: 60, percentage: 46.2 },
+      ],
+    },
+    {
+      date: "Jun 6, 24",
+      issues: [
+        { status: "completed", value: 35, percentage: 28.8 },
+        { status: "in progress", value: 14, percentage: 19.2 },
+        { status: "on hold", value: 80, percentage: 51.9 },
+      ],
+    },
+    {
+      date: "Jun 7, 24",
+      issues: [
+        { status: "completed", value: 15, percentage: 20.0 },
+        { status: "in progress", value: 55, percentage: 35.2 },
+        { status: "on hold", value: 72, percentage: 44.8 },
+      ],
+    },
+    {
+      date: "Jun 8, 24",
+      issues: [
+        { status: "completed", value: 15, percentage: 21.7 },
+        { status: "in progress", value: 69, percentage: 48.2 },
+        { status: "on hold", value: 45, percentage: 30.1 },
+      ],
+    },
+  ];
+
+  // Transform data into a format suitable for BarChart
+  const formattedArray = data.map((entry) => {
+    return {
+      date: entry.date,
+      ...entry.issues.reduce(
+        (acc, issue) => {
+          acc[issue.status] = issue.value;
+          return acc;
+        },
+        {} as { [key in Issue["status"]]?: number }
+      ),
+    };
+  });
+
+  const valueFormatter = (number: number) => {
+    return Intl.NumberFormat("us").format(number).toString();
+  };
+
+  // Adapted to match your dashboard's color palette
+  const statusColors = {
+    "completed": "bg-emerald-500",
+    "in progress": "bg-amber-500",
+    "on hold": "bg-slate-500",
+  };
+
+  const CustomTooltip = ({ payload, active, label }: TooltipProps & { payload?: any[]; active?: boolean; label?: string | number; }) => {
+    if (!active || !payload || payload.length === 0) return null;
+
+    const data = payload.map((item) => ({
+      status: item.category as Issue["status"],
+      value: item.value,
+      percentage: (
+        (item.value /
+          (item.payload.completed +
+            item.payload["in progress"] +
+            item.payload["on hold"])) *
+        100
+      ).toFixed(2),
+    }));
+
+    return (
+      <div className="w-64 rounded-xl border border-slate-700/60 bg-slate-900/95 backdrop-blur-md shadow-2xl overflow-hidden">
+        {/* Tooltip Header */}
+        <div className="bg-slate-800/80 px-4 py-2 border-b border-slate-700/60">
+          <p className="flex items-center justify-between text-xs">
+            <span className="text-slate-400 uppercase tracking-wider font-semibold">Date</span>
+            <span className="font-bold text-slate-100">{label}</span>
+          </p>
+        </div>
+
+        {/* Tooltip Body */}
+        <div className="px-4 py-3 space-y-2.5">
+          {data.map((item, index) => (
+            <div key={index} className="flex items-center space-x-3">
+              <span
+                className={cx(statusColors[item.status], "w-2.5 h-2.5 shrink-0 rounded-sm shadow-sm")}
+                aria-hidden={true}
+              />
+              <div className="flex w-full justify-between items-center">
+                <span className="text-sm font-medium text-slate-300 capitalize">
+                  {item.status}
+                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-bold text-white">
+                    {item.value}
+                  </span>
+                  <span className="text-xs font-medium text-slate-500 w-12 text-right">
+                    {item.percentage}&#37;
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+  function PipelineActivityChart() {
+    return (
+      <Card className="bg-white border-slate-200 shadow-sm p-6 w-full rounded-xl">
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-slate-900">Pipeline Activity</h3>
+          <p className="text-sm text-slate-500">Breakdown of mandates and deals over time.</p>
+        </div>
+
+        <BarChart
+          className="hidden h-72 sm:block mt-4"
+          data={formattedArray}
+          index="date"
+          categories={["completed", "in progress", "on hold"]}
+          colors={["emerald", "amber", "slate"]} // Matches the dashboard variables
+          valueFormatter={valueFormatter}
+          yAxisWidth={35}
+          showLegend={true}
+          customTooltip={CustomTooltip}
+        />
+
+        <BarChart
+          className="h-80 sm:hidden mt-4"
+          data={formattedArray}
+          index="date"
+          categories={["completed", "in progress", "on hold"]}
+          colors={["emerald", "amber", "slate"]}
+          valueFormatter={valueFormatter}
+          showYAxis={false}
+          showLegend={true}
+          startEndOnly={true}
+          customTooltip={CustomTooltip}
+        />
+      </Card>
+    );
+  }
+
   function BiasHistogram({ data }: { data: any }) {
     if (!data?.values?.length) {
       return <p className="text-sm text-slate-400 p-6">Not enough listings to assess model bias here.</p>;
@@ -1301,25 +1540,42 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
   }
 
   function SuburbOutlierChart({ data, macroMean }: { data: any[]; macroMean: number }) {
+    const [showAll, setShowAll] = useState(false);
+
     if (!data || data.length === 0) {
       return <p className="text-sm text-slate-400 p-6">Not enough suburb variety in this macro region yet.</p>;
     }
 
+    const VISIBLE_COUNT = 6;
+    const hasMore = data.length > VISIBLE_COUNT;
+    const visibleData = showAll ? data : data.slice(0, VISIBLE_COUNT);
+
     return (
-      <ResponsiveContainer width="100%" height={Math.max(200, data.length * 40)}>
-        <ReBarChart data={data} layout="vertical" margin={{ left: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-          <XAxis type="number" domain={[0, 100]} />
-          <YAxis type="category" dataKey="location" width={110} tick={{ fontSize: 12 }} />
-          <Tooltip formatter={(v: any) => [`${v}`, "Deal Score"]} />
-          <ReferenceLine x={macroMean} stroke="#64748b" strokeDasharray="4 4" label={{ value: "Macro avg", fontSize: 10, position: "top" }} />
-          <Bar dataKey="deal_score" radius={[0, 4, 4, 0]}>
-            {data.map((entry, idx) => (
-              <Cell key={idx} fill={entry.is_outlier ? "#f59e0b" : "#94a3b8"} />
-            ))}
-          </Bar>
-        </ReBarChart>
-      </ResponsiveContainer>
+      <div>
+        <ResponsiveContainer width="100%" height={Math.max(200, visibleData.length * 40)}>
+          <ReBarChart data={visibleData} layout="vertical" margin={{ left: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+            <XAxis type="number" domain={[0, 100]} />
+            <YAxis type="category" dataKey="location" width={110} tick={{ fontSize: 12 }} />
+            <Tooltip formatter={(v: any) => [`${v}`, "Deal Score"]} />
+            <ReferenceLine x={macroMean} stroke="#64748b" strokeDasharray="4 4" label={{ value: "Macro avg", fontSize: 10, position: "top" }} />
+            <Bar dataKey="deal_score" radius={[0, 4, 4, 0]}>
+              {visibleData.map((entry, idx) => (
+                <Cell key={idx} fill={entry.is_outlier ? "#f59e0b" : "#94a3b8"} />
+              ))}
+            </Bar>
+          </ReBarChart>
+        </ResponsiveContainer>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setShowAll(!showAll)}
+            className="mt-2 text-xs font-medium text-amber-600 hover:text-amber-700 underline underline-offset-2"
+          >
+            {showAll ? "Show less" : `Read more (${data.length - VISIBLE_COUNT} more suburbs)`}
+          </button>
+        )}
+      </div>
     );
   }
 
@@ -1342,8 +1598,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [locationLookup, setLocationLookup] = useState('');
   const [agent_suburb, setagent_Suburb] = useState('');
   const [backendStats, setBackendStats] = useState<any>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
 
 
   const [propUrl, setPropUrl] = useState('');
@@ -1422,6 +1678,65 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     { id: 3, type: 'Lease Signed', location: 'Vredehoek, 3 Bed', amount: '+ R 24,000', isPositive: true },
     { id: 4, type: 'Valuation Run', location: 'Camps Bay, Villa', amount: 'R 85,000', isPositive: true },
   ];
+
+  const [activeStatTab, setActiveStatTab] = useState('market_intel');
+
+  const statTabData: Record<string, { label1: string; val1: any; badge1: string; label2: string; val2: any; badge2: string; label3: string; val3: any; badge3: string; label5: string; val5: any; badge5: string; label4: string; val4: any; badge4: string; deposit: { chart: any[]; coverage_pct: number } }> = {
+    market_intel: {
+      label1: "Total Listings", val1: backendStats?.one_bed ?? 0, badge1: "Live",
+      label2: "Median Rent", val2: backendStats?.avgrent_one ?? 0, badge2: "Live",
+      label3: "Rand/m²", val3: backendStats?.sqrent_one ?? 0, badge3: "",
+      label4: "Avg Days on Market", val4: backendStats?.b1_velo ?? 0, badge4: "",
+      label5: 'Average Model Variance', val5: backendStats?.b1_var ?? 0, badge5: ' ',
+      deposit: backendStats?.deposit_b1 ?? { chart: [], coverage_pct: 0 },
+
+    },
+    financials: {
+      label1: "Total Listings", val1: backendStats?.two_bed ?? 0, badge1: "Live",
+      label2: "Median Rent", val2: backendStats?.avgrent_two ?? 0, badge2: "Live",
+      label3: "Rand/m²", val3: backendStats?.sqrent_two ?? 0, badge3: "",
+      label4: "Avg Days on Market", val4: backendStats?.b2_velo ?? 0, badge4: "",
+      label5: 'Average Model Variance', val5: backendStats?.b2_var ?? 0, badge5: ' ',
+      deposit: backendStats?.deposit_b2 ?? { chart: [], coverage_pct: 0 },
+    },
+    accuracy: {
+      label1: "Total Listings", val1: backendStats?.three_bed ?? 0, badge1: "Live",
+      label2: "Median Rent", val2: backendStats?.avgrent_three ?? 0, badge2: "Live",
+      label3: "Rand/m²", val3: backendStats?.sqrent_three ?? 0, badge3: "",
+      label4: "Avg Days on Market", val4: backendStats?.b3_velo ?? 0, badge4: "",
+      label5: 'Average Model Variance', val5: backendStats?.b3_var ?? 0, badge5: ' ',
+      deposit: backendStats?.deposit_b3 ?? { chart: [], coverage_pct: 0 },
+
+
+    },
+    snipe: {
+      label1: "Total Listings", val1: backendStats?.four_bed ?? 0, badge1: "Live",
+      label2: "Median Rent", val2: backendStats?.avgrent_four ?? 0, badge2: "Live",
+      label3: "Rand/m²", val3: backendStats?.sqrent_four ?? 0, badge3: "",
+      label4: "Avg Days on Market", val4: backendStats?.b4_velo ?? 0, badge4: "",
+      label5: 'Average Model Variance', val5: backendStats?.b4_var ?? 0, badge5: ' ',
+      deposit: backendStats?.deposit_b4 ?? { chart: [], coverage_pct: 0 },
+
+    },
+    rhoa: {
+      label1: "Total Listings", val1: backendStats?.five_bed ?? 0, badge1: "Live",
+      label2: "Median Rent", val2: backendStats?.avgrent_five ?? 0, badge2: "Live",
+      label3: "Rand/m²", val3: backendStats?.sqrent_five ?? 0, badge3: "",
+      label4: "Avg Days on Market", val4: backendStats?.b5_velo ?? 0, badge4: "",
+      label5: 'Average Model Variance', val5: backendStats?.b5_var ?? 0, badge5: ' ',
+      deposit: backendStats?.deposit_b5 ?? { chart: [], coverage_pct: 0 },
+
+    },
+    nene: {
+      label1: "Total Listings", val1: backendStats?.half_bed ?? 0, badge1: "Live",
+      label2: "Median Rent", val2: backendStats?.avgrent_half ?? 0, badge2: "Live",
+      label3: "Rand/m²", val3: backendStats?.sqrent_half ?? 0, badge3: "",
+      label4: "Avg Days on Market", val4: backendStats?.b05_velo ?? 0, badge4: "",
+      label5: 'Average Model Variance', val5: backendStats?.b05_var ?? 0, badge5: ' ',
+      deposit: backendStats?.deposit_b05 ?? { chart: [], coverage_pct: 0 },
+    }
+
+  };
 
   const [locations, setLocations] = useState<{ value: string }[]>([]);
 
@@ -1617,8 +1932,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
 
   const fetchDashboardStats = async (suburbName: string) => {
+    setIsLoadingStats(true);
     try {
-      // Calling the same API the Map uses, but feeding it the Dashboard's Suburb!
       const response = await fetch(`http://127.0.0.1:8000/api/clickedsuburb?suburb=${suburbName}`);
       if (!response.ok) throw new Error("Stats fetch failed");
 
@@ -1628,6 +1943,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
+    } finally {
+      setIsLoadingStats(false);
     }
   };
 
@@ -1647,9 +1964,12 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
+      setIsLoadingStats(true);
       fetch(`http://localhost:8000/api/clickedsuburb?suburb=${encodeURIComponent(value)}`)
         .then(res => res.json())
-        .then(data => setBackendStats(data));
+        .then(data => setBackendStats(data))
+        .catch(err => console.error("Suburb stats error:", err))
+        .finally(() => setIsLoadingStats(false));
     }, 400);
   }, []);
 
@@ -1737,6 +2057,12 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                 option?.value?.toUpperCase().includes(inputValue.toUpperCase()) ?? false
               }
             />
+            {isLoadingStats && (
+              <span className="ml-3 flex items-center gap-1.5 text-xs font-medium text-amber-600">
+                <RiLoader4Line className="w-4 h-4 animate-spin" />
+                Computing...
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -1751,7 +2077,15 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         </header>
 
         {/* Scrollable Dashboard Grid */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-8 relative">
+          {isLoadingStats && activeMenu === 'Analytics' && (
+            <div className="absolute inset-0 z-40 bg-slate-50/60 backdrop-blur-[1px] flex items-start justify-center pt-24 pointer-events-none">
+              <div className="flex items-center gap-2 bg-white border border-slate-200 shadow-md rounded-full px-4 py-2">
+                <RiLoader4Line className="w-4 h-4 animate-spin text-amber-500" />
+                <span className="text-sm font-medium text-slate-700">Recalculating suburb stats...</span>
+              </div>
+            </div>
+          )}
           <div className="max-w-7xl mx-auto space-y-6">
             {activeMenu === 'Analytics' && (
               <>
@@ -1785,7 +2119,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                   {/* Weekly Stat (Spans 2) */}
                   <Card className="lg:col-span-2 shadow-sm border-slate-200 p-6 flex flex-col justify-between">
                     <div>
-                      <p className="text-sm font-medium text-slate-500">Avg Market Variance</p>
+                      <p className="text-sm font-medium text-slate-500 flex items-center">
+                        Avg Market Variance
+                        <InfoTooltip text="Average gap between Volora's predicted value and the asking price across all listings in this suburb. Positive % = listings trending underpriced (asking below predicted). Negative % = listings trending overpriced (asking above predicted)." />
+                      </p>
                       <p className="text-2xl font-bold text-slate-900 mt-2">%{backendStats?.avg_var ?? 0}</p>
                     </div>
                     <div className="text-xs font-medium text-emerald-600 flex items-center gap-1 mt-4">
@@ -1832,7 +2169,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                     />
                   </Card>
                   <Card className="lg:col-span-4 flex flex-col gap-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">Model Accuracy in This Suburb</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Model Accuracy in This Suburb
+                      <InfoTooltip text="Distribution of how far Volora's prediction sits from each listing's asking price in this suburb. Bars right of center = predictions running above asking (underpriced cluster). Bars left of center = predictions running below asking (overpriced cluster). 'Balanced' means the average gap isn't statistically large enough to call a consistent bias — it's within normal noise for this suburb's sample size." />
+
+                    </h3>
                     <p className="text-sm text-slate-500 mb-6">Predicted vs actual price spread across active listings</p>
                     <BiasHistogram data={backendStats?.bias_chart_data} />
                   </Card>
@@ -1878,7 +2218,9 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                   {/* Suburb Pattern Breaks — sits in the remaining space next to the donut column */}
                   <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">Suburb Pattern Breaks</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Suburb Pattern Breaks
+                      <InfoTooltip text="Average Deal Score per suburb, compared across the wider macro region. Amber bars are suburbs whose average score sits more than one standard deviation from the regional average — either notably better or worse deal density than neighboring suburbs typically show." />
+                    </h3>
                     <p className="text-sm text-slate-500 mb-6">Amber = outside macro-region norm</p>
                     <SuburbOutlierChart data={backendStats?.outlier_chart_data ?? []} macroMean={backendStats?.macro_deal_score_mean ?? 0} />
                   </Card>
@@ -1888,10 +2230,12 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                 {/* ROW 3: Data Tables & Area Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                  {/* DELETE this whole block */}
                   {/* Asking vs Volora Value Scatter (Spans 8) */}
                   <Card className="lg:col-span-8 shadow-sm border-slate-200 p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">Asking vs Volora Value</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Asking vs Volora Value
+                      <InfoTooltip text="Every dot is one property, plotted by asking price versus what Volora predicted it should rent for. A tight cluster of dots hugging the diagonal line means the model is calling prices accurately in this suburb. Dots below the line are asking below Volora's prediction — a signal worth investigating. Dots above the line are asking more than predicted. This chart displays a clean read on how well the model is actually tracking this market." />
+
+                    </h3>
                     <p className="text-sm text-slate-500 mb-1">Dots below the line are underpriced — dots above are overpriced</p>
                     {backendStats?.outliers_excluded > 0 && (
                       <p className="text-xs text-slate-400 mb-6">
@@ -1904,7 +2248,9 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                   {/* Recent Transactions List (Spans 4) */}
                   {/* Fastest Movers — Macro Suburb Top 6 */}
                   <Card className="lg:col-span-4 shadow-sm border-slate-200 p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">Fastest Movers</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Fastest Movers
+                      <InfoTooltip text="Fastest-leasing listing from each suburb within the wider macro region around your searched suburb — not limited to this suburb alone. Percentage shown is how much faster (or slower) than the macro region's average days-on-market." />
+                    </h3>
                     <p className="text-sm text-slate-500 mb-6">Top 6 quickest-leasing listings in the wider area</p>
 
                     <div className="flex flex-col gap-3">
@@ -1941,106 +2287,125 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                 </div>
 
-                {/* Trending Stats Row — Seamless Flow (No Outer Borders) */}
+                {/* Trending Stats Row — driven by the same tab state as the section below */}
                 <div className="w-full flex flex-col lg:flex-row gap-6 mt-4">
-
-                  {/* LEFT SIDE BLOCK (Revenue & Overdue) */}
                   <div className="flex-1 bg-transparent">
                     <div className="grid grid-cols-2 divide-x divide-slate-100 h-full">
-
                       <div className="flex flex-col justify-center px-6 py-5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-500">Total Listings </span>
-                          <span className="text-[10px] font-bold text-emerald-600">{"Live"}</span>
+                          <span className="text-xs font-medium text-slate-500">{statTabData[activeStatTab].label1}</span>
+                          {statTabData[activeStatTab].badge1 && <span className="text-[10px] font-bold text-emerald-600">{statTabData[activeStatTab].badge1}</span>}
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">{backendStats?.one_bed}</span>
+                        <span className="text-2xl font-bold text-slate-900">{statTabData[activeStatTab].val1}</span>
                       </div>
-
                       <div className="flex flex-col justify-center px-6 py-5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-500">Median Rent</span>
-                          <span className="text-[10px] font-bold text-rose-600">{"Live"}</span>
+                          <span className="text-xs font-medium text-slate-500">{statTabData[activeStatTab].label2}</span>
+                          {statTabData[activeStatTab].badge2 && <span className="text-[10px] font-bold text-rose-600">{statTabData[activeStatTab].badge2}</span>}
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">{backendStats?.avgrent_one}</span>
+                        <span className="text-2xl font-bold text-slate-900">{statTabData[activeStatTab].val2}</span>
                       </div>
-
                     </div>
                   </div>
-
-                  {/* RIGHT SIDE BLOCK (Outstanding & Expenses) */}
                   <div className="flex-1 bg-transparent">
                     <div className="grid grid-cols-2 divide-x divide-slate-100 h-full">
-
                       <div className="flex flex-col justify-center px-6 py-5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-500">Rand/m²</span>
-                          <span className="text-[10px] font-bold text-rose-600">-1.39%</span>
+                          <span className="text-xs font-medium text-slate-500">{statTabData[activeStatTab].label3}</span>
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">{backendStats?.sqrent_one}</span>
+                        <span className="text-2xl font-bold text-slate-900">{statTabData[activeStatTab].val3}</span>
                       </div>
-
                       <div className="flex flex-col justify-center px-6 py-5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-500">Avg Days on Market</span>
-                          <span className="text-[10px] font-bold text-rose-600">+10.18%</span>
+                          <span className="text-xs font-medium text-slate-500">{statTabData[activeStatTab].label4}</span>
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">{backendStats?.b1_velo}</span>
+                        <span className="text-2xl font-bold text-slate-900">{statTabData[activeStatTab].val4}</span>
                       </div>
-
                     </div>
                   </div>
-
+                  <div className="flex-1 bg-transparent">
+                    <div className="grid grid-cols-2 divide-x divide-slate-100 h-full">
+                      <div className="flex flex-col justify-center px-6 py-5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-500">{statTabData[activeStatTab].label5}</span>
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">{statTabData[activeStatTab].val5}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 {/* Deep Dive Tabs Section */}
-                <div className="w-full mt-6">
-                  <Tabs defaultValue="market_intel">
 
-                    {/* The Full-Width Tab Bar */}
-                    <TabsList className="grid w-full grid-cols-3" variant="solid">
-                      <TabsTrigger value="market_intel">Market Intelligence</TabsTrigger>
-                      <TabsTrigger value="financials">Financials</TabsTrigger>
-                      <TabsTrigger value="accuracy">Model Accuracy</TabsTrigger>
-                    </TabsList>
+                <Tabs value={activeStatTab} onValueChange={setActiveStatTab}>
+                  {/* Underline-style tab bar, consistent with Tremor cards */}
+                  <TabsList className="flex w-full gap-6 border-b border-slate-200">
+                    <TabsTrigger value="market_intel" className="pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent rounded-none transition-colors data-[state=active]:text-amber-600 data-[state=active]:border-amber-500">1 Bedroom</TabsTrigger>
+                    <TabsTrigger value="financials" className="pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent rounded-none transition-colors data-[state=active]:text-amber-600 data-[state=active]:border-amber-500">2 Bedroom</TabsTrigger>
+                    <TabsTrigger value="accuracy" className="pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent rounded-none transition-colors data-[state=active]:text-amber-600 data-[state=active]:border-amber-500">3 Bedroom</TabsTrigger>
+                    <TabsTrigger value="snipe" className="pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent rounded-none transition-colors data-[state=active]:text-amber-600 data-[state=active]:border-amber-500">4 Bedroom</TabsTrigger>
+                    <TabsTrigger value="rhoa" className="pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent rounded-none transition-colors data-[state=active]:text-amber-600 data-[state=active]:border-amber-500">5 Bedroom</TabsTrigger>
+                    <TabsTrigger value="nene" className="pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent rounded-none transition-colors data-[state=active]:text-amber-600 data-[state=active]:border-amber-500">Studio</TabsTrigger>
+                  </TabsList>
 
+                  <Card className="shadow-sm border-slate-200 p-6 mt-6">
                     {/* TAB 1: Market Intel (Map & Suburb Data) */}
-                    <TabsContent value="market_intel" className="mt-4 focus:outline-none">
-                      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-1">Market Intel</h3>
-                        <p className="text-sm text-slate-500 mb-6">Current active deals and layout across the suburb.</p>
+                    <TabsContent value="market_intel" className="mt-6 focus:outline-none">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Deposit Ratio
+                        <InfoTooltip text="Breakdown of listings in this suburb by lease type — short-term versus long-term. Helps you gauge whether this suburb's rental stock skews toward one lease structure, which can affect pricing expectations." />
 
-                        <div className="h-64 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
-                          <span className="text-sm font-medium text-slate-400">Map or Suburb Insights go here</span>
-                        </div>
-                      </div>
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-6">Security deposit as a multiple of monthly rent — 1 Bedroom</p>
+                      <DepositRatioChart data={statTabData.market_intel.deposit.chart} coveragePct={statTabData.market_intel.deposit.coverage_pct} />
                     </TabsContent>
 
                     {/* TAB 2: Financials (Revenue & Pipeline) */}
-                    <TabsContent value="financials" className="mt-4 focus:outline-none">
-                      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-1">Financial Breakdown</h3>
-                        <p className="text-sm text-slate-500 mb-6">Revenue tracking and pending invoices.</p>
+                    <TabsContent value="financials" className="mt-6 focus:outline-none">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Deposit Ratio
+                        <InfoTooltip text="Breakdown of listings in this suburb by lease type — short-term versus long-term. Helps you gauge whether this suburb's rental stock skews toward one lease structure, which can affect pricing expectations." />
 
-                        <div className="h-64 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
-                          <span className="text-sm font-medium text-slate-400">Financial Charts go here</span>
-                        </div>
-                      </div>
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-6">Security deposit as a multiple of monthly rent — 2 Bedroom</p>
+                      <DepositRatioChart data={statTabData.financials.deposit.chart} coveragePct={statTabData.financials.deposit.coverage_pct} />
                     </TabsContent>
 
                     {/* TAB 3: Model Accuracy */}
-                    <TabsContent value="accuracy" className="mt-4 focus:outline-none">
-                      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-1">Model Accuracy</h3>
-                        <p className="text-sm text-slate-500 mb-6">Predicted vs actual price spread across active listings.</p>
+                    <TabsContent value="accuracy" className="mt-6 focus:outline-none">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Deposit Ratio
+                        <InfoTooltip text="Breakdown of listings in this suburb by lease type — short-term versus long-term. Helps you gauge whether this suburb's rental stock skews toward one lease structure, which can affect pricing expectations." />
 
-                        {/* You can literally drop your existing <BiasHistogram /> right here! */}
-                        <div className="h-64 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
-                          <span className="text-sm font-medium text-slate-400">BiasHistogram Component goes here</span>
-                        </div>
-                      </div>
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-6">Security deposit as a multiple of monthly rent — 3 Bedroom</p>
+                      <DepositRatioChart data={statTabData.accuracy.deposit.chart} coveragePct={statTabData.accuracy.deposit.coverage_pct} />
                     </TabsContent>
 
-                  </Tabs>
-                </div>
+                    <TabsContent value="snipe" className="mt-6 focus:outline-none">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Deposit Ratio
+                        <InfoTooltip text="Breakdown of listings in this suburb by lease type — short-term versus long-term. Helps you gauge whether this suburb's rental stock skews toward one lease structure, which can affect pricing expectations." />
+
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-6">Security deposit as a multiple of monthly rent — 4 Bedroom</p>
+                      <DepositRatioChart data={statTabData.snipe.deposit.chart} coveragePct={statTabData.snipe.deposit.coverage_pct} />
+                    </TabsContent>
+
+                    <TabsContent value="rhoa" className="mt-6 focus:outline-none">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Deposit Ratio
+                        <InfoTooltip text="Breakdown of listings in this suburb by lease type — short-term versus long-term. Helps you gauge whether this suburb's rental stock skews toward one lease structure, which can affect pricing expectations." />
+
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-6">Security deposit as a multiple of monthly rent — 5 Bedroom</p>
+                      <DepositRatioChart data={statTabData.rhoa.deposit.chart} coveragePct={statTabData.rhoa.deposit.coverage_pct} />
+                    </TabsContent>
+
+                    <TabsContent value="nene" className="mt-6 focus:outline-none">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Deposit Ratio
+                        <InfoTooltip text="Breakdown of listings in this suburb by lease type — short-term versus long-term. Helps you gauge whether this suburb's rental stock skews toward one lease structure, which can affect pricing expectations." />
+
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-6">Security deposit as a multiple of monthly rent — Studio</p>
+                      <DepositRatioChart data={statTabData.nene.deposit.chart} coveragePct={statTabData.nene.deposit.coverage_pct} />
+                    </TabsContent>
+                  </Card>
+                </Tabs>
               </>
             )}
 
@@ -2115,7 +2480,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                     <div className="col-span-2">Type</div>
                     <div className="col-span-2">Asking Price</div>
                     <div className="col-span-2">Volora Value</div>
-                    <div className="col-span-2">Deal Score</div>
+                    <div className="col-span-2 flex items-center">
+                      Deal Score
+                      <InfoTooltip text="0–100. Weighted score: 55% price arbitrage (how underpriced vs Volora's prediction), 25% suburb safety score, 15% suburb civic score, 5% property percentile. Safety and civic inputs reflect the suburb overall, not this specific unit." />
+                    </div>
                     <div className="col-span-1 text-right">Actions</div>
                   </div>
 
@@ -2200,7 +2568,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                                       <span className="font-medium text-slate-900">R {deal.price_diff?.toLocaleString() || '0'}</span>
                                     </p>
                                     <p className="flex justify-between items-center text-slate-500">
-                                      <span>Percentage Diff:</span>
+                                      <span className="flex items-center">
+                                        Percentage Diff:
+                                        <InfoTooltip text="How far Volora's predicted value sits from the asking price, as a % of predicted value. Positive = asking price is below what Volora predicts (potentially underpriced). Negative = asking price is above prediction (potentially overpriced)." />
+                                      </span>
                                       {/* Dynamic Green/Red Badge for Percentage */}
                                       <span className={`font-bold px-2 py-0.5 rounded ${deal.percent_diff > 0
                                         ? 'bg-emerald-100 text-emerald-700'
@@ -2216,7 +2587,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                                 <div className="flex flex-col">
 
                                   <div className="flex justify-between items-center mb-3">
-                                    <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Property Traits</h4>
+                                    <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center">
+                                      Property Traits
+                                      <InfoTooltip text="Detected from the listing description text by our scraping pipeline. A red X means the feature wasn't mentioned in the listing — not confirmed absent from the property.Feel free to edit manually if you know better." />
+                                    </h4>
 
                                     {/* The Edit Toggle Button */}
                                     {editingDealId === (deal.id || idx) ? (
@@ -2289,7 +2663,12 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                                             { label: 'Balcony', key: 'has_balcony' },
                                             { label: 'Internet / Fibre', key: 'has_internet' },
                                             { label: 'Furnished', key: 'is_furnished' },
-                                            { label: 'Renovated', key: 'mentions_renovated' }
+                                            { label: 'Renovated', key: 'mentions_renovated' },
+                                            { label: 'Study', key: 'has_study' },
+                                            { label: 'Modern or Top-End Finishes', key: 'mentios_luxury' },
+                                            { label: 'Garden', key: 'has_garden' },
+                                            { label: 'Lease Term', key: 'lease_term' },
+                                            { label: 'House Share / Shared Accom', key: 'mentions_houseshare' }
                                           ].map((trait, i) => {
 
                                             let rawVal = traits[trait.key];
@@ -2380,4 +2759,4 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       </main>
     </div>
   );
-};
+}
