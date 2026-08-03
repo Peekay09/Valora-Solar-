@@ -6,6 +6,14 @@ library(tidyr)
 library(readr)
 
 #* @filter cors
+cors <- function(res) {
+  res$setHeader("Access-Control-Allow-Origin", "*")
+  res$setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+  res$setHeader("Access-Control-Allow-Headers", "Content-Type")
+  plumber::forward()
+}
+
+#* @filter cors
 function(req, res) {
   res$setHeader("Access-Control-Allow-Origin", "*")
   res$setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
@@ -108,7 +116,7 @@ function(url, suburb="", macro_suburb="", region="", res) {
     df_url <- df_url %>% mutate(beds = case_when(beds == 0 ~ 0.5, TRUE ~ beds))
     
     df_url <- df_url %>% mutate(type = case_when(
-      str_detect(type, '(?i)house')     ~ 'house',
+      str_detect(type, '(?i)(?<!town)house')~ 'house',
       str_detect(type, '(?i)apartment') ~ 'Apartment',
       str_detect(type, '(?i)townhouse') ~ 'townhouse',
       TRUE                              ~ NA_character_
@@ -131,35 +139,66 @@ function(url, suburb="", macro_suburb="", region="", res) {
       mutate(
         feat_clean = coalesce(as.character(feat), ""),
         desc_clean = coalesce(as.character(desc), ""),
-        
-        is_furnished        = as.integer(str_detect(feat_clean, '(?i)(?<!un)(?<!not )\\bfurnished\\b')),
+
+        is_furnished       = as.integer(str_detect(feat_clean, '(?i)(?<!un)(?<!not )\\bfurnished\\b')),
+
         has_pool           = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )\\bpool\\b(?! table)')),
+
+        # FIXED: was being overwritten by a second assignment that dropped the
+        # feat_clean check and the negation guard entirely. Now checks both
+        # columns, with negation guard applied across the combined text.
         has_internet = as.integer(
-          (str_detect(desc_clean, '(?i)fibre-ready|fibre ready|wifi|wi-fi|fibre|internet') |
-          str_detect(feat_clean, '(?i)fibre|internet|wifi|wi-fi')) &
+          (str_detect(feat_clean, '(?i)(?<!no )(?<!not )\\b(internet|fibre|wifi|wi-fi)\\b') |
+          str_detect(desc_clean, '(?i)fibre[- ]ready|wifi|wi-fi|fibre|internet')) &
           !str_detect(desc_clean, '(?i)no\\s+(internet|fibre|wifi|wi-fi)|not\\s+includ\\w*\\s+(internet|fibre|wifi)|without\\s+(internet|fibre|wifi)')
         ),
+
         has_inverter       = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )inverter')),
         has_solar_panels   = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )solar panels')),
         has_garden         = as.integer(str_detect(feat_clean, '(?i)garden')),
-        has_backup         = has_inverter + has_solar_panels,
-        mentions_houseshare = as.integer(str_detect(desc_clean, '(?i)house[- ]?share|room to rent|room available|shared house|shared accommodation|shared living|single room|private room|roommate|room only|rent a room|sharing (house|home|property)|co[- ]?living|communal living|bachelor room|lodger')),
-        has_sercurity      = as.integer(str_detect(desc_clean, '(?i)24-hour security|24-hour manned security|24/7 security|security estate|secure estate|guard|access control|boom gate|electric fence|armed response|CCTV cameras|security cameras|security system|security patrol|security guard|security company|security service|security personnel|security measures|security features')),
+        has_backup         = ifelse(has_solar_panels == 1 | has_inverter == 1, 1, 0),
+
+        # REFINED: broadened trigger phrases + negation guard, since "no security"
+        # / "not a secure complex" was previously able to false-positive
+        has_sercurity = as.integer(
+          str_detect(desc_clean, '(?i)24[- ]?hour\\s+(manned\\s+)?security|24/7\\s+security|security\\s+estate|secure\\s+estate|secured\\s+complex|guard(ed)?|access\\s+control|boom\\s?gate|electric\\s+fence|armed\\s+response|CCTV|security\\s+(cameras|system|patrol|guard|company|service|personnel|measures|features)') &
+          !str_detect(desc_clean, '(?i)no\\s+security|without\\s+security|not\\s+secure')
+        ),
+
         in_estate          = as.integer(str_detect(desc_clean, '(?i)\\bestate\\b')),
         in_complex         = as.integer(str_detect(desc_clean, '(?i)\\bcomplex\\b')),
+
+        mentions_houseshare = as.integer(str_detect(desc_clean, '(?i)house[- ]?share|room to rent|room available|shared house|shared accommodation|shared living|single room|private room|roommate|room only|rent a room|sharing (house|home|property)|co[- ]?living|communal living|bachelor room|lodger')),
+
         has_mountain_view  = as.integer(str_detect(desc_clean, "(?i)mountain views?|table mountain views?|lion'?s head")),
-        has_ocean_view     = as.integer(str_detect(desc_clean, '(?i)sea views?|ocean views?|sea-facing|beachfront|panoramic views?')),
+        has_ocean_view     = as.integer(str_detect(desc_clean, '(?i)sea views?|ocean views?|sea[- ]facing|beachfront|panoramic views?')),
         is_top_floor       = as.integer(str_detect(desc_clean, '(?i)top floor|penthouse|highest floor')),
         near_promenade     = as.integer(str_detect(desc_clean, '(?i)promenade')),
         has_study          = as.integer(str_detect(desc_clean, '(?i)\\bstudy\\b|home office|study nook|study room')),
-        mentions_renovated  = as.integer(str_detect(desc_clean, '(?i)newly renovated|renovations?|refurbished|remodel(l)?ed|upgraded (kitchen|bathroom|finishes|interior)|fully renovated')),
-        mentions_luxury     = as.integer(str_detect(desc_clean, '(?i)\\bluxur(y|ious)\\b|high[- ]end finishes|premium finishes|exclusive (development|estate|residence)|exquisite|opulent|state[- ]of[- ]the[- ]art|top[- ]of[- ]the[- ]range|five[- ]star|5[- ]star|designer (kitchen|finishes)')),
-        mentions_new_build  = as.integer(str_detect(desc_clean, '(?i)brand new (house|apartment|unit|development|build|property|complex|townhouse)|first tenant|newly built|new building|off[- ]plan|new build')),
-        is_HouseShare      = ifelse(is_HouseShare == 1 | mentions_houseshare == 1, 1, 0),
-        is_gated           = ifelse(in_estate == 1 | in_complex == 1, 1, 0),
-        has_balcony        = as.integer(str_detect(desc_clean, '(?i)\\bbalcon(y|ies)\\b|private balcony|balcony (with|overlooking)')),
-        has_patio          = as.integer(str_detect(desc_clean, '(?i)\\bpatio\\b|courtyard patio|braai patio')),
-        floor_level        = case_when(
+
+        mentions_renovated = as.integer(str_detect(desc_clean, '(?i)newly renovated|renovations?|refurbished|remodel(l)?ed|upgraded (kitchen|bathroom|finishes|interior)|fully renovated')),
+
+        # REFINED: added a few more common Property24 phrasings for luxury/high-end
+        mentions_luxury = as.integer(str_detect(desc_clean, '(?i)\\bluxur(y|ious)\\b|high[- ]end finishes|premium finishes|exclusive (development|estate|residence)|exquisite|opulent|state[- ]of[- ]the[- ]art|top[- ]of[- ]the[- ]range|five[- ]star|5[- ]star|designer (kitchen|finishes)|upmarket|world[- ]class finishes|sophisticated finishes')),
+
+        mentions_new_build = as.integer(str_detect(desc_clean, '(?i)brand new (house|apartment|unit|development|build|property|complex|townhouse)|first tenant|newly built|new building|off[- ]plan|new build')),
+
+        is_HouseShare = ifelse(is_HouseShare == 1 | mentions_houseshare == 1, 1, 0),
+        is_gated      = ifelse(in_estate == 1 | in_complex == 1, 1, 0),
+
+        has_balcony = as.integer(str_detect(desc_clean, '(?i)\\bbalcon(y|ies)\\b|private balcony|balcony (with|overlooking)')),
+        has_patio   = as.integer(str_detect(desc_clean, '(?i)\\bpatio\\b|courtyard patio|braai patio')),
+
+        # NEW: pet-friendly, checking both feat_clean (structured feature chips,
+        # if Property24 lists "Pets Allowed" as a tag) and desc_clean (free text),
+        # with a negation guard for "no pets" / "not pet friendly"
+        is_pet_friendly = as.integer(
+          (str_detect(feat_clean, '(?i)pet[- ]?friendly|pets?\\s+allowed') |
+          str_detect(desc_clean, '(?i)pet[- ]?friendly|pets?\\s+(allowed|welcome)|small pets? (allowed|welcome)|dogs? (allowed|welcome)|cats? (allowed|welcome)')) &
+          !str_detect(desc_clean, '(?i)no\\s+pets?|pets?\\s+not\\s+allowed|strictly\\s+no\\s+pets?')
+        ),
+
+        floor_level = case_when(
           str_detect(desc_clean, '(?i)ground floor|street level|bottom floor') ~ 0L,
           str_detect(desc_clean, '(?i)\\b1st floor|first floor\\b') ~ 1L,
           str_detect(desc_clean, '(?i)\\b2nd floor|second floor\\b') ~ 2L,

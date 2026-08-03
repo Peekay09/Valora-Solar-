@@ -19,6 +19,17 @@ from pydantic import BaseModel
 import requests
 from bs4 import BeautifulSoup
 import re
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Change this to your Vercel domain later for security
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
  
 # Initialize Supabase
 # Replace these strings with your actual Supabase project credentials
@@ -71,10 +82,12 @@ def enforce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 mod4 = joblib.load('mod4_lgbm_model.joblib')
 mod4_columns = joblib.load('mod4_columns.joblib')
 lookup_db2 = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(50000).execute()
+PRICE_CUTOFF_LOG = 11.409782
 lookup_db = pd.DataFrame(lookup_db2.data)
 lookup_db = enforce_dtypes(lookup_db)
 lookup_db['price'] = pd.to_numeric(lookup_db['price'], errors='coerce')
 lookup_db['beds'] = pd.to_numeric(lookup_db['beds'], errors='coerce')
+lookup_db = lookup_db[lookup_db['price'] <= PRICE_CUTOFF_LOG].copy()
 train_db = lookup_db
 label_encoders = joblib.load('label_encoders.joblib')
 mod4_lower = joblib.load('mod4_lgbm_model_lower_q10.joblib')
@@ -121,6 +134,7 @@ class PropertyInput(BaseModel):
     has_study:bool
     mentions_renovated: bool
     mentions_luxury: bool
+    is_pet_friendly:bool
     asking_price: float = 0.0
     
 
@@ -340,6 +354,7 @@ def predict_price(prop: PropertyInput):
         'location': clean_location,
         'proptype': clean_proptype,
         'lease_term': clean_lease,
+        "is_pet_friendly":int(prop.is_pet_friendly),
         'has_pool': int(prop.has_pool),
         'is_gated': int(prop.is_gated),
         'has_study': int(prop.has_study),
@@ -430,6 +445,8 @@ def get_recent_map_listings():
         df = enforce_dtypes(df)
         df['price'] = pd.to_numeric(df['price'], errors='coerce')
         df['floor'] = pd.to_numeric(df['floor'], errors='coerce')
+        df = df[df['price'] <= PRICE_CUTOFF_LOG].copy()
+        num_df = len(df)
  
         # Reverse log to actual Rands
         
@@ -588,6 +605,25 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
     deposit_b3 = _empty_deposit
     deposit_b4 = _empty_deposit
     deposit_b5 = _empty_deposit
+    b5_velo=0
+    avg_med=0
+    b4_velo=0
+    b3_velo=0
+    b2_velo=0
+    b1_velo=0
+    b05_velo=0
+    b05_var=0
+    b1_var=0
+    b2_var=0
+    b3_var=0
+    b4_var=0
+    b5_var=0
+    b05_med=0
+    b1_med=0
+    b2_med=0
+    b3_med=0
+    b4_med=0
+    b5_med=0
 
 
     try:
@@ -604,6 +640,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
         df['price'] = pd.to_numeric(df['price'], errors='coerce')
         df['floor'] = pd.to_numeric(df['floor'], errors='coerce')
         df['beds'] = pd.to_numeric(df['beds'], errors='coerce')
+        df = df[df['price'] <= PRICE_CUTOFF_LOG].copy()
  
         # 3. Filter for the clicked suburb safely (Case and space insensitive)
         safe_suburb = suburb.lower().strip()
@@ -808,12 +845,22 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
                 for row in scatter_data
             ]
             avg_var = round(sub_df['perk'].mean(), 2) if not sub_df['perk'].empty else 0
+            avg_med= round(sub_df['perk'].median(), 2) if not sub_df['perk'].empty else 0
             b05_var = round(b05_df['perk'].mean(), 2) if not b05_df['perk'].empty else 0
             b1_var = round(b1_df['perk'].mean(), 2) if not b1_df['perk'].empty else 0
             b2_var = round(b2_df['perk'].mean(), 2) if not b2_df['perk'].empty else 0
             b3_var = round(b3_df['perk'].mean(), 2) if not b3_df['perk'].empty else 0
             b4_var = round(b4_df['perk'].mean(), 2) if not b4_df['perk'].empty else 0
             b5_var = round(b5_df['perk'].mean(), 2) if not b5_df['perk'].empty else 0
+            b05_med = round(b05_df['perk'].median(), 2) if not b05_df['perk'].empty else 0
+            b1_med = round(b1_df['perk'].median(), 2) if not b1_df['perk'].empty else 0
+            b2_med = round(b2_df['perk'].median(), 2) if not b2_df['perk'].empty else 0
+            b3_med = round(b3_df['perk'].median(), 2) if not b3_df['perk'].empty else 0
+            b4_med = round(b4_df['perk'].median(), 2) if not b4_df['perk'].empty else 0
+            b5_med = round(b5_df['perk'].median(), 2) if not b5_df['perk'].empty else 0
+
+
+
 
             market_pulse = get_market_pulse(suburb, sub_df)  # [deal_pct, fair_pct, steep_pct]
 
@@ -980,6 +1027,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             'dom_chart_data': dom_chart_data,
             "scatter_data": scatter_data,
             'avg_var': avg_var,
+            'avg_med': avg_med,
             "outliers_excluded": outliers_excluded,
             "market_pulse": market_pulse,
             "mac_top6": mac_top6_data, 
@@ -999,6 +1047,12 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             'b3_var':b3_var,
             'b4_var':b4_var,
             'b5_var':b5_var,
+            'b05_med': b05_med,
+            'b1_med':b1_med,
+            'b2_med':b2_med,
+            'b3_med':b3_med,
+            'b4_med':b4_med,
+            'b5_med':b5_med,
             'deposit_overall': deposit_overall,
             'deposit_b05': deposit_b05,
             'deposit_b1': deposit_b1,
@@ -1060,8 +1114,9 @@ class QuickAnalyzeInput(BaseModel):
     mentions_new_build: int = 0  
     is_HouseShare: int = 0
     is_gated: int = 0
+    is_pet_friedndly : int = 0
     has_balcony: int = 0         
-    has_patio: int = 0           
+    has_patio: int = 0
     deposit: str = "0"           # FIXED: Matched type hint to string
 
 
@@ -1106,7 +1161,8 @@ def predict_quick_price(prop: QuickAnalyzeInput):
         'proptype': clean_proptype,
         'lease_term': prop.lease_term,
         'has_pool': prop.has_pool,
-        'is_gated': prop.is_gated,                     
+        'is_gated': prop.is_gated,
+        'is_pet_friendly': prop.is_pet_friedndly,                     
         'has_study': prop.has_study,                   
         'has_garden': prop.has_garden,                 
         'mentions_renovated': prop.mentions_renovated, 

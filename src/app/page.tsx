@@ -368,13 +368,14 @@ export default function VoloraPlatform() {
     { label: 'Gated Community', value: 'is_gated' },
     { label: 'Study', value: 'has_study' },
     { label: 'Balcony', value: 'has_balcony' },
-    { label: 'Patio', value: 'has_patio' }
+    { label: 'Patio', value: 'has_patio' },
+    { label: 'Pet Friendly', value: 'is_pet_friendly' }
 
   ];
 
   // 6. FETCH LIVE MAP DATA FROM FASTAPI
   useEffect(() => {
-    fetch("http://localhost:8000/api/training-listings")
+    fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/api/training-listings`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch map data");
         return res.json();
@@ -443,7 +444,7 @@ export default function VoloraPlatform() {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/locations")
+    fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/api/locations`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch locations");
         return res.json();
@@ -463,7 +464,7 @@ export default function VoloraPlatform() {
       const initialize = () => {
         const mapboxgl = (window as any).mapboxgl;
         if (!mapboxgl) return;
-        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1IjoiZG91Z2gxIiwiYSI6ImNtcWU4Y3hjcTAxenoycHM2MnI3NTdqbjAifQ.eBh1uCE7yKod43GQoavW5g';
+        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
         mapInstanceRef.current = new mapboxgl.Map({
           container: mapContainerRef.current!,
@@ -528,6 +529,7 @@ export default function VoloraPlatform() {
         floor: floor,
         gar: gar,
         lease_term: lease_term,
+        is_pet_friendly: amenities.includes('is_pet_friendly'),
         has_pool: amenities.includes('has_pool'),
         is_furnished: amenities.includes('is_furnished'),
         has_internet: amenities.includes('has_internet'),
@@ -546,7 +548,7 @@ export default function VoloraPlatform() {
         asking_price: askingPrice || 0
       };
 
-      const response = await fetch("http://localhost:8000/predict", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -606,7 +608,8 @@ export default function VoloraPlatform() {
     const fetchDeepStats = async () => {
       setIsFetchingStats(true);
       try {
-        const response = await fetch(`http://localhost:8000/api/clickedsuburb?suburb=${encodeURIComponent(selectedSuburb)}`);
+        const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL || 'http://127.0.0.1:8000';
+        const response = await fetch(`${baseUrl}/api/clickedsuburb?suburb=${encodeURIComponent(selectedSuburb)}`)
         if (!response.ok) throw new Error("FastAPI rejected the request");
 
         const data = await response.json();
@@ -1580,7 +1583,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
   }
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/locations")
+    fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/api/locations`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch locations");
         return res.json();
@@ -1681,13 +1684,14 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   const [activeStatTab, setActiveStatTab] = useState('market_intel');
 
-  const statTabData: Record<string, { label1: string; val1: any; badge1: string; label2: string; val2: any; badge2: string; label3: string; val3: any; badge3: string; label5: string; val5: any; badge5: string; label4: string; val4: any; badge4: string; deposit: { chart: any[]; coverage_pct: number } }> = {
+  const statTabData: Record<string, { label1: string; val1: any; badge1: string; label2: string; val2: any; badge2: string; label3: string; val3: any; badge3: string; label5: string; val5: any; badge5: string; label4: string; val4: any; badge4: string; label6: string; val6: any; badge6: string; deposit: { chart: any[]; coverage_pct: number } }> = {
     market_intel: {
       label1: "Total Listings", val1: backendStats?.one_bed ?? 0, badge1: "Live",
       label2: "Median Rent", val2: backendStats?.avgrent_one ?? 0, badge2: "Live",
       label3: "Rand/m²", val3: backendStats?.sqrent_one ?? 0, badge3: "",
       label4: "Avg Days on Market", val4: backendStats?.b1_velo ?? 0, badge4: "",
       label5: 'Average Model Variance', val5: backendStats?.b1_var ?? 0, badge5: ' ',
+      label6: 'Median Model Variance', val6: backendStats?.b1_med ?? 0, badge6: ' ',
       deposit: backendStats?.deposit_b1 ?? { chart: [], coverage_pct: 0 },
 
     },
@@ -1697,6 +1701,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       label3: "Rand/m²", val3: backendStats?.sqrent_two ?? 0, badge3: "",
       label4: "Avg Days on Market", val4: backendStats?.b2_velo ?? 0, badge4: "",
       label5: 'Average Model Variance', val5: backendStats?.b2_var ?? 0, badge5: ' ',
+      label6: 'Median Model Variance', val6: backendStats?.b2_med ?? 0, badge6: ' ',
+
       deposit: backendStats?.deposit_b2 ?? { chart: [], coverage_pct: 0 },
     },
     accuracy: {
@@ -1705,6 +1711,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       label3: "Rand/m²", val3: backendStats?.sqrent_three ?? 0, badge3: "",
       label4: "Avg Days on Market", val4: backendStats?.b3_velo ?? 0, badge4: "",
       label5: 'Average Model Variance', val5: backendStats?.b3_var ?? 0, badge5: ' ',
+      label6: 'Median Model Variance', val6: backendStats?.b3_med ?? 0, badge6: ' ',
       deposit: backendStats?.deposit_b3 ?? { chart: [], coverage_pct: 0 },
 
 
@@ -1715,6 +1722,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       label3: "Rand/m²", val3: backendStats?.sqrent_four ?? 0, badge3: "",
       label4: "Avg Days on Market", val4: backendStats?.b4_velo ?? 0, badge4: "",
       label5: 'Average Model Variance', val5: backendStats?.b4_var ?? 0, badge5: ' ',
+      label6: 'Median Model Variance', val6: backendStats?.b4_med ?? 0, badge6: ' ',
+
       deposit: backendStats?.deposit_b4 ?? { chart: [], coverage_pct: 0 },
 
     },
@@ -1724,6 +1733,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       label3: "Rand/m²", val3: backendStats?.sqrent_five ?? 0, badge3: "",
       label4: "Avg Days on Market", val4: backendStats?.b5_velo ?? 0, badge4: "",
       label5: 'Average Model Variance', val5: backendStats?.b5_var ?? 0, badge5: ' ',
+      label6: 'Median Model Variance', val6: backendStats?.b5_med ?? 0, badge6: ' ',
       deposit: backendStats?.deposit_b5 ?? { chart: [], coverage_pct: 0 },
 
     },
@@ -1733,6 +1743,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       label3: "Rand/m²", val3: backendStats?.sqrent_half ?? 0, badge3: "",
       label4: "Avg Days on Market", val4: backendStats?.b05_velo ?? 0, badge4: "",
       label5: 'Average Model Variance', val5: backendStats?.b05_var ?? 0, badge5: ' ',
+      label6: 'Median Model Variance', val6: backendStats?.b05_med ?? 0, badge6: ' ',
       deposit: backendStats?.deposit_b05 ?? { chart: [], coverage_pct: 0 },
     }
 
@@ -1764,7 +1775,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     setIsAnalyzing(true);
 
     try {
-      const rResponse = await fetch('http://127.0.0.1:8080/clean-url', {
+      const rResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/clean-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1816,9 +1827,12 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
         has_balcony: propertyData.has_balcony || 0,
         has_patio: propertyData.has_patio || 0,
         deposit: propertyData.deposit ? String(propertyData.deposit) : "0",
+        is_pet_friendly: propertyData.is_pet_friendly || 0,
+        has_internet: propertyData.has_internet || 0
       };
 
-      const pythonResponse = await fetch('http://127.0.0.1:8000/predict-quick', {
+
+      const pythonResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/predict-quick`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(pythonPayload),
@@ -1890,7 +1904,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       // Overlay the agent's edits onto the original payload
       const updatedPayload = { ...deal.python_payload, ...editDraft };
 
-      const pythonResponse = await fetch('http://127.0.0.1:8000/predict-quick', {
+      const pythonResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/predict-quick`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedPayload),
@@ -1934,7 +1948,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const fetchDashboardStats = async (suburbName: string) => {
     setIsLoadingStats(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/clickedsuburb?suburb=${suburbName}`);
+      const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
+      const response = await fetch(`${baseUrl}/api/clickedsuburb?suburb=${encodeURIComponent(suburbName)}`)
       if (!response.ok) throw new Error("Stats fetch failed");
 
       const data = await response.json();
@@ -1965,7 +1980,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       setIsLoadingStats(true);
-      fetch(`http://localhost:8000/api/clickedsuburb?suburb=${encodeURIComponent(value)}`)
+      const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
+      fetch(`${baseUrl}/api/clickedsuburb?suburb=${encodeURIComponent(value)}`)
         .then(res => res.json())
         .then(data => setBackendStats(data))
         .catch(err => console.error("Suburb stats error:", err))
@@ -2331,6 +2347,12 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                         </div>
                         <span className="text-2xl font-bold text-slate-900">{statTabData[activeStatTab].val5}</span>
                       </div>
+                      <div className="flex flex-col justify-center px-6 py-5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-500">{statTabData[activeStatTab].label6}</span>
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">{statTabData[activeStatTab].val6}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2370,8 +2392,8 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                     {/* TAB 3: Model Accuracy */}
                     <TabsContent value="accuracy" className="mt-6 focus:outline-none">
-                      <h3 className="text-lg font-bold text-slate-900 mb-1">Deposit Ratio
-                        <InfoTooltip text="Breakdown of listings in this suburb by lease type — short-term versus long-term. Helps you gauge whether this suburb's rental stock skews toward one lease structure, which can affect pricing expectations." />
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Lease Term  Ratio
+                        <InfoTooltip text="Breakdown of listings in this suburb by lease term — short-term versus long-term. Helps you gauge whether this suburb's rental stock skews toward one lease structure, which can affect pricing expectations." />
 
                       </h3>
                       <p className="text-sm text-slate-500 mb-6">Security deposit as a multiple of monthly rent — 3 Bedroom</p>
@@ -2652,6 +2674,24 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                                         </div>
 
                                         {/* --- BOTTOM: BOOLEAN AMENITIES --- */}
+                                        {/* --- LEASE TERM (select, not a boolean trait) --- */}
+                                        <div className="border-b border-slate-200/60 pb-4">
+                                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Lease Term</label>
+                                          {isEditing ? (
+                                            <select
+                                              value={traits.lease_term || 'Long Term'}
+                                              onChange={(e) => setEditDraft((prev: any) => ({ ...prev, lease_term: e.target.value }))}
+                                              className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                            >
+                                              <option value="Short Term">Short Term</option>
+                                              <option value="Long Term">Long Term</option>
+                                            </select>
+                                          ) : (
+                                            <span className="text-sm font-bold text-slate-700">{traits.lease_term || 'N/A'}</span>
+                                          )}
+                                        </div>
+
+                                        {/* --- BOTTOM: BOOLEAN AMENITIES --- */}
                                         <div className="grid grid-cols-2 gap-3">
                                           {[
                                             { label: 'Pool', key: 'has_pool' },
@@ -2665,10 +2705,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                                             { label: 'Furnished', key: 'is_furnished' },
                                             { label: 'Renovated', key: 'mentions_renovated' },
                                             { label: 'Study', key: 'has_study' },
-                                            { label: 'Modern or Top-End Finishes', key: 'mentios_luxury' },
+                                            { label: 'Modern or Top-End Finishes', key: 'mentions_luxury' },
                                             { label: 'Garden', key: 'has_garden' },
-                                            { label: 'Lease Term', key: 'lease_term' },
-                                            { label: 'House Share / Shared Accom', key: 'mentions_houseshare' }
+                                            { label: 'House Share / Shared Accom', key: 'is_HouseShare' },
+                                            { label: 'Pet Friendly', key: 'is_pet_friendly' }
                                           ].map((trait, i) => {
 
                                             let rawVal = traits[trait.key];
