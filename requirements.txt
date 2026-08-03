@@ -8,3 +8,4 @@ numpy
 geopy
 supabase
 beautifulsoup4
+lightgbm
