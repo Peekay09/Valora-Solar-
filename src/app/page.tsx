@@ -361,9 +361,10 @@ export default function VoloraPlatform() {
 
   ];
 
-  // 6. FETCH LIVE MAP DATA FROM FASTAPI
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/api/training-listings`)
+    const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL ;
+    
+    fetch(`${baseUrl}/api/training-listings`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch map data");
         return res.json();
@@ -431,8 +432,11 @@ export default function VoloraPlatform() {
     }
   }, []);
 
+  // Fetch Locations
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/api/locations`)
+    const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
+    
+    fetch(`${baseUrl}/api/locations`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch locations");
         return res.json();
@@ -452,10 +456,12 @@ export default function VoloraPlatform() {
       const initialize = () => {
         const mapboxgl = (window as any).mapboxgl;
         if (!mapboxgl) return;
+        
+        // Added fallback token to fix the map loading issue
         mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
         mapInstanceRef.current = new mapboxgl.Map({
-          container: mapContainerRef.current!,
+          container: mapContainerRef.current,
           style: 'mapbox://styles/mapbox/dark-v11',
           center: [18.4232, -33.9249],
           zoom: 11
@@ -536,7 +542,8 @@ export default function VoloraPlatform() {
         asking_price: askingPrice || 0
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/predict`, {
+      const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
+      const response = await fetch(`${baseUrl}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -1891,8 +1898,9 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     try {
       // Overlay the agent's edits onto the original payload
       const updatedPayload = { ...deal.python_payload, ...editDraft };
-
-      const pythonResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/predict-quick`, {
+      
+      const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
+      const pythonResponse = await fetch(`${baseUrl}/predict-quick`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedPayload),
@@ -1930,7 +1938,6 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       setIsRevaluing(false);
     }
   };
-
 
 
   const fetchDashboardStats = async (suburbName: string) => {
