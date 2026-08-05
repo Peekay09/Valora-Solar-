@@ -1,5 +1,6 @@
 import Footer from "@/components/ui/Footer";
 import { NavBar } from "@/components/ui/Navbar";
+import { Analytics } from "@vercel/analytics/next";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -49,6 +50,7 @@ export default function RootLayout({
         <NavBar />
         {children}
         <Footer />
+        <Analytics />
       </body>
     </html>
   )
