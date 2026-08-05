@@ -22,6 +22,7 @@ import re
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app = FastAPI(title="fastapi_py")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,18 +39,10 @@ SUPABASE_KEY = "sb_publishable_zoN9OBRiq6xvoXoUEYIpzA_N5gRf77K"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
  
 # Initialize the API
-app = FastAPI(title="fastapi_py")
  
 # Allow the React frontend to communicate with this backend
 # Allow the React frontend to communicate with this backend
-app.add_middleware(
-    CORSMiddleware,
-    # Be specific here to avoid the Starlette security crash
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"], 
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
  
 def enforce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     NUMERIC_COLS = [
