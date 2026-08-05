@@ -288,18 +288,6 @@ const AgentLoginForm = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
   );
 };
 
-type AnalysisResult = {
-  type: string;
-  asking_price: number;
-  volora_value: number;
-  score: number;
-  lower_bound?: number;
-  upper_bound?: number;
-  listing_input?: any;
-  matches?: any;
-  price_diff?: number;
-  percent_diff?: number;
-};
 
 export default function VoloraPlatform() {
   // 1. Navigation & UI State
