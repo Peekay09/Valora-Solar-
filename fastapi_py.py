@@ -26,7 +26,7 @@ app = FastAPI(title="fastapi_py")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Change this to your Vercel domain later for security
+    allow_origins=["https://vlok.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
