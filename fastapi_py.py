@@ -304,7 +304,7 @@ def encode_with_label_encoders(df: pd.DataFrame, encoders: dict) -> pd.DataFrame
 # ENDPOINTS
 # ==========================================
  
-@app.post("/predict")
+@app.post("/api/predict")
 def predict_price(prop: PropertyInput):
     clean_input_location = prop.location.lower().strip()
 
@@ -1114,7 +1114,7 @@ class QuickAnalyzeInput(BaseModel):
 
 
 
-@app.post("/predict-quick")
+@app.post("/api/predict-quick")
 def predict_quick_price(prop: QuickAnalyzeInput):
     clean_input_location = prop.suburb.lower().strip()
 
