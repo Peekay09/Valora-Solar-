@@ -21,7 +21,6 @@ from bs4 import BeautifulSoup
 import re
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
 app = FastAPI(title="fastapi_py")
 
 app.add_middleware(
