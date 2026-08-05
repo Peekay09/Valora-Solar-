@@ -543,7 +543,7 @@ export default function VoloraPlatform() {
       };
 
       const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
-      const response = await fetch(`${baseUrl}/predict`, {
+      const response = await fetch(`${baseUrl}/api/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -1827,7 +1827,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       };
 
 
-      const pythonResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/predict-quick`, {
+      const pythonResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/api/predict-quick`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(pythonPayload),
