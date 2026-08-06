@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
 from bs4 import BeautifulSoup
+
 import re
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -268,8 +269,8 @@ def predict_with_bounds(input_encoded: pd.DataFrame):
     log_point = mod4.predict(input_encoded)[0]
     point_price = np.exp(log_point)
  
-    lower_cols = mod4_lower.feature_names_in_
-    upper_cols = mod4_upper.feature_names_in_
+    lower_cols = mod4_lower.feature_name_
+    upper_cols = mod4_upper.feature_name_
  
     lower_input = input_encoded.reindex(columns=lower_cols, fill_value=0)
     upper_input = input_encoded.reindex(columns=upper_cols, fill_value=0)
