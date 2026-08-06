@@ -73,7 +73,7 @@ def enforce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 # Load your institutional-grade model and column structures
 mod4 = joblib.load('mod4_lgbm_model.joblib')
 mod4_columns = joblib.load('mod4_columns.joblib')
-lookup_db2 = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(50000).execute()
+lookup_db2 = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(15000).execute()
 PRICE_CUTOFF_LOG = 11.409782
 lookup_db = pd.DataFrame(lookup_db2.data)
 lookup_db = enforce_dtypes(lookup_db)

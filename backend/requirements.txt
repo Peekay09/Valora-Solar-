@@ -8,6 +8,6 @@ numpy
 geopy
 supabase
 beautifulsoup4
-lightgbm
+lightgbm==4.6.0
 scikit-learn
 joblib
