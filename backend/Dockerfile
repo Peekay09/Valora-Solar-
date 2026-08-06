@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libssl-dev \
     libpq-dev \
+    libgomp1 \
     gcc \
     g++ \
     make \
