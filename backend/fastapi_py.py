@@ -375,7 +375,7 @@ def predict_price(prop: PropertyInput):
 
     
     input_encoded = encode_with_label_encoders(input_df, label_encoders)
-    expected_columns = mod4.feature_names_in_
+    expected_columns = mod4.feature_name_
     input_encoded = input_encoded.reindex(columns=expected_columns, fill_value=0)
     
     actual_rands, lower_price, high_price, interval_width_pct = predict_with_bounds(input_encoded)
@@ -449,7 +449,7 @@ def get_recent_map_listings():
         
         # A. One-hot encode the entire dataframe at once
         df_encoded = encode_with_label_encoders(df, label_encoders)
-        expected_columns = mod4.feature_names_in_
+        expected_columns = mod4.feature_name_
         df_encoded = df_encoded.reindex(columns=expected_columns, fill_value=0)
  
         # C. Predict on the whole batch simultaneously (Lightning fast!)
@@ -666,7 +666,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
  
             # Predict only on the suburb subset
             df_encoded = encode_with_label_encoders(sub_df, label_encoders)
-            expected_columns = mod4.feature_names_in_
+            expected_columns = mod4.feature_name_
             df_encoded = df_encoded.reindex(columns=expected_columns, fill_value=0)
             sub_df['log_pred'] = mod4.predict(df_encoded)
             sub_df['predicted_price'] = np.exp(sub_df['log_pred'])
@@ -889,7 +889,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             print(f"MAC_DF total rows: {len(mac_df)}, after DOM filter: {len(mac_df_filtered)}, unique locations: {mac_df_filtered['location'].nunique()}")
 
             df_encoded2 = encode_with_label_encoders(mac_df, label_encoders)
-            expected_columns = mod4.feature_names_in_
+            expected_columns = mod4.feature_name_
             df_encoded2 = df_encoded2.reindex(columns=expected_columns, fill_value=0)        
             mac_df['log_pred'] = mod4.predict(df_encoded2)
             mac_df['predicted_price'] = np.exp(mac_df['log_pred'])
@@ -1186,7 +1186,7 @@ def predict_quick_price(prop: QuickAnalyzeInput):
     
     # 4. Predict
     input_encoded = encode_with_label_encoders(input_df, label_encoders)
-    expected_columns = mod4.feature_names_in_
+    expected_columns = mod4.feature_name_
     input_encoded = input_encoded.reindex(columns=expected_columns, fill_value=0)
     
     actual_rands, lower_price, high_price, interval_width_pct = predict_with_bounds(input_encoded)
