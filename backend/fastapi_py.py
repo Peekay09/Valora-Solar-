@@ -1288,3 +1288,21 @@ def predict_quick_price(prop: QuickAnalyzeInput):
         "listing_input": Listing_input,
         'matches': matched_urls 
     }
+
+
+
+@app.post("/clean-url")
+async def proxy_clean_url(request: Request):
+    try:
+        # 1. Grab the JSON payload sent from Next.js
+        payload = await request.json()
+        
+        # 2. Forward that exact payload to the R Plumber server running in the background
+        # (Make sure the "/clean-url" part matches whatever you named the route inside your r_api_url.R file!)
+        r_response = requests.post("http://127.0.0.1:8001/clean-url", json=payload, timeout=30)
+        
+        # 3. Send the R script's response directly back to Next.js
+        return r_response.json()
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"R Pipeline Failed: {str(e)}")
