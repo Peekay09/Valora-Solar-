@@ -9,3 +9,5 @@ geopy
 supabase
 beautifulsoup4
 lightgbm
+scikit-learn
+joblib
