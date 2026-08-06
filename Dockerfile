@@ -23,11 +23,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. Install your exact R package stack
 RUN R -e "install.packages(c('plumber', 'dplyr', 'stringr', 'rvest', 'tidyr', 'readr', 'lightgbm', 'httr', 'jsonlite'), repos='http://cran.rstudio.com/')"
 
-# 6. Copy application code (FastAPI scripts, R scripts, etc.)
+# 6. Copy application code (FastAPI scripts, R scripts, models)
 COPY . .
 
 # 7. Expose the port for Azure Container Apps
 EXPOSE 8000
 
-# 8. Launch the API server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 8. Launch the API server (Correctly pointing to fastapi_py.py!)
+CMD ["uvicorn", "fastapi_py:app", "--host", "0.0.0.0", "--port", "8000"]
