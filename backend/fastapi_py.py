@@ -85,7 +85,8 @@ train_db = lookup_db
 label_encoders = joblib.load('label_encoders.joblib')
 mod4_lower = joblib.load('mod4_lgbm_model_lower_q10.joblib')
 mod4_upper = joblib.load('mod4_lgbm_model_upper_q90.joblib')
- 
+for model in [mod4, mod4_lower, mod4_upper]:
+    model._fitted_with_feature_names = False
 
 suburb_counts = (
     train_db['location']
