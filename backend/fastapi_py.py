@@ -13,7 +13,7 @@ from supabase import create_client, Client
 import os
 import random
 from fastapi import Query
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
@@ -1198,6 +1198,8 @@ def predict_quick_price(prop: QuickAnalyzeInput):
 
     # 5. Calculate Scores
     percentage_difference = 0.0
+    price_difference = 0.0
+
     if prop.asking_price > 0:
         price_difference = actual_rands - prop.asking_price
         percentage_difference = (price_difference / actual_rands) * 100
