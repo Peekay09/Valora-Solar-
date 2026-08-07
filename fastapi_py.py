@@ -13,11 +13,12 @@ from supabase import create_client, Client
 import os
 import random
 from fastapi import Query
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
 from bs4 import BeautifulSoup
+
 import re
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -84,7 +85,8 @@ train_db = lookup_db
 label_encoders = joblib.load('label_encoders.joblib')
 mod4_lower = joblib.load('mod4_lgbm_model_lower_q10.joblib')
 mod4_upper = joblib.load('mod4_lgbm_model_upper_q90.joblib')
- 
+for model in [mod4, mod4_lower, mod4_upper]:
+    model._fitted_with_feature_names = False
 
 suburb_counts = (
     train_db['location']
@@ -268,8 +270,8 @@ def predict_with_bounds(input_encoded: pd.DataFrame):
     log_point = mod4.predict(input_encoded)[0]
     point_price = np.exp(log_point)
  
-    lower_cols = mod4_lower.feature_names_in_
-    upper_cols = mod4_upper.feature_names_in_
+    lower_cols = mod4_lower.feature_name_
+    upper_cols = mod4_upper.feature_name_
  
     lower_input = input_encoded.reindex(columns=lower_cols, fill_value=0)
     upper_input = input_encoded.reindex(columns=upper_cols, fill_value=0)
@@ -375,7 +377,7 @@ def predict_price(prop: PropertyInput):
 
     
     input_encoded = encode_with_label_encoders(input_df, label_encoders)
-    expected_columns = mod4.feature_names_in_
+    expected_columns = mod4.feature_name_
     input_encoded = input_encoded.reindex(columns=expected_columns, fill_value=0)
     
     actual_rands, lower_price, high_price, interval_width_pct = predict_with_bounds(input_encoded)
@@ -425,7 +427,7 @@ def get_recent_map_listings():
     """Grabs a randomized pool of recent listings LIVE from Supabase and calculates true ML arbitrage stats."""
     try:
         # 1. Grab a large pool (300 rows) safely
-        response = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(50000).execute()
+        response = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(15000).execute()
         data_list = response.data
         num_df = len(data_list)
  
@@ -449,7 +451,7 @@ def get_recent_map_listings():
         
         # A. One-hot encode the entire dataframe at once
         df_encoded = encode_with_label_encoders(df, label_encoders)
-        expected_columns = mod4.feature_names_in_
+        expected_columns = mod4.feature_name_
         df_encoded = df_encoded.reindex(columns=expected_columns, fill_value=0)
  
         # C. Predict on the whole batch simultaneously (Lightning fast!)
@@ -620,7 +622,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
 
     try:
         # 2. Fetch Data
-        response = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(50000).execute()
+        response = supabase.table('FINAL DAILY RENTAL DATA2').select('*').limit(15000).execute()
         
         # Defensive check: ensure data exists
         if not response.data:
@@ -666,7 +668,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
  
             # Predict only on the suburb subset
             df_encoded = encode_with_label_encoders(sub_df, label_encoders)
-            expected_columns = mod4.feature_names_in_
+            expected_columns = mod4.feature_name_
             df_encoded = df_encoded.reindex(columns=expected_columns, fill_value=0)
             sub_df['log_pred'] = mod4.predict(df_encoded)
             sub_df['predicted_price'] = np.exp(sub_df['log_pred'])
@@ -889,7 +891,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
             print(f"MAC_DF total rows: {len(mac_df)}, after DOM filter: {len(mac_df_filtered)}, unique locations: {mac_df_filtered['location'].nunique()}")
 
             df_encoded2 = encode_with_label_encoders(mac_df, label_encoders)
-            expected_columns = mod4.feature_names_in_
+            expected_columns = mod4.feature_name_
             df_encoded2 = df_encoded2.reindex(columns=expected_columns, fill_value=0)        
             mac_df['log_pred'] = mod4.predict(df_encoded2)
             mac_df['predicted_price'] = np.exp(mac_df['log_pred'])
@@ -1186,7 +1188,7 @@ def predict_quick_price(prop: QuickAnalyzeInput):
     
     # 4. Predict
     input_encoded = encode_with_label_encoders(input_df, label_encoders)
-    expected_columns = mod4.feature_names_in_
+    expected_columns = mod4.feature_name_
     input_encoded = input_encoded.reindex(columns=expected_columns, fill_value=0)
     
     actual_rands, lower_price, high_price, interval_width_pct = predict_with_bounds(input_encoded)
@@ -1196,6 +1198,8 @@ def predict_quick_price(prop: QuickAnalyzeInput):
 
     # 5. Calculate Scores
     percentage_difference = 0.0
+    price_difference = 0.0
+
     if prop.asking_price > 0:
         price_difference = actual_rands - prop.asking_price
         percentage_difference = (price_difference / actual_rands) * 100
@@ -1288,3 +1292,21 @@ def predict_quick_price(prop: QuickAnalyzeInput):
         "listing_input": Listing_input,
         'matches': matched_urls 
     }
+
+
+
+@app.post("/clean-url")
+async def proxy_clean_url(request: Request):
+    try:
+        # 1. Grab the JSON payload sent from Next.js
+        payload = await request.json()
+        
+        # 2. Forward that exact payload to the R Plumber server running in the background
+        # (Make sure the "/clean-url" part matches whatever you named the route inside your r_api_url.R file!)
+        r_response = requests.post("http://127.0.0.1:8001/clean-url", json=payload, timeout=30)
+        
+        # 3. Send the R script's response directly back to Next.js
+        return r_response.json()
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"R Pipeline Failed: {str(e)}")
