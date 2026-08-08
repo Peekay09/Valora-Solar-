@@ -8,11 +8,12 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libssl-dev \
     libpq-dev \
+    libgomp1 \
+    libsodium-dev \
     gcc \
     g++ \
     make \
     && rm -rf /var/lib/apt/lists/*
-
 # 3. Set working directory inside the container
 WORKDIR /app
 
@@ -30,4 +31,9 @@ COPY . .
 EXPOSE 8000
 
 # 8. Launch the API server (Correctly pointing to fastapi_py.py!)
-CMD ["uvicorn", "fastapi_py:app", "--host", "0.0.0.0", "--port", "8000"]
+# Copy the startup script and give it execution permissions
+COPY start.sh .
+RUN chmod +x start.sh
+
+# Launch both servers using the script
+CMD ["./start.sh"]

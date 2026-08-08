@@ -9,11 +9,11 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libpq-dev \
     libgomp1 \
+    libsodium-dev \
     gcc \
     g++ \
     make \
     && rm -rf /var/lib/apt/lists/*
-
 # 3. Set working directory inside the container
 WORKDIR /app
 
