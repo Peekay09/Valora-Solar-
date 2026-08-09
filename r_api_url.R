@@ -40,7 +40,7 @@ function(url, suburb="", macro_suburb="", region="", res) {
     
     urlpage <- read_html(url)
     
-    prc             <- urlpage %>% html_elements(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "m-flex", " " ))]') %>% html_text(trim = T)
+    prc <- urlpage %>% html_element(xpath = '//*[contains(concat(" ", @class, " "), concat(" ", "p24_price", " "))]') %>% html_text(trim = T)
     baseicon        <- urlpage %>% html_elements(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "p24_icons", " " ))]') %>% html_text(trim = T)
     dascript        <- urlpage %>% html_element(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "p24_expandedText", " " ))]') %>% html_text(trim = T)
     text_feat2      <- urlpage %>% html_element(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "p24_keyFeaturesWrapper", " " ))]') %>% html_text(trim = T)
