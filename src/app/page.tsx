@@ -1900,7 +1900,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
       const updatedPayload = { ...deal.python_payload, ...editDraft };
       
       const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
-      const pythonResponse = await fetch(`${baseUrl}/predict-quick`, {
+      const pythonResponse = await fetch(`${baseUrl}/api/predict-quick`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedPayload),
