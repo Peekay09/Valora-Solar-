@@ -22,7 +22,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 5. Install your exact R package stack
-RUN R -e "install.packages(c('plumber', 'dplyr', 'stringr', 'rvest', 'tidyr', 'readr', 'lightgbm', 'httr', 'jsonlite'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages(c('plumber', 'dplyr', 'stringr', 'rvest', 'tidyr', 'readr', 'lightgbm', 'httr', 'jsonlite','digest'), repos='http://cran.rstudio.com/')"
 
 # 6. Copy application code (FastAPI scripts, R scripts, models)
 COPY . .

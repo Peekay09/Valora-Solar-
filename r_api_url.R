@@ -4,6 +4,52 @@ library(stringr)
 library(rvest)   
 library(tidyr)
 library(readr)
+library(httr)
+library(digest)
+
+# ==========================================
+# SCRAPERAPI FETCH WITH LOCAL CACHE
+# Avoids burning credits on repeat requests for the same listing
+# within a 24-hour window.
+# ==========================================
+get_cache_path <- function(url) {
+  hash <- digest::digest(url, algo = "md5")
+  file.path("/tmp/scrape_cache", paste0(hash, ".rds"))
+}
+
+fetch_property_page <- function(url, cache_hours = 24) {
+  cache_path <- get_cache_path(url)
+  
+  if (file.exists(cache_path)) {
+    age_hours <- as.numeric(difftime(Sys.time(), file.info(cache_path)$mtime, units = "hours"))
+    if (age_hours < cache_hours) {
+      return(readRDS(cache_path))
+    }
+  }
+  
+  scraperapi_key <- Sys.getenv("SCRAPERAPI_KEY")
+  if (scraperapi_key == "") {
+    stop("SCRAPERAPI_KEY environment variable is not set")
+  }
+  
+  api_url <- paste0(
+    "http://api.scraperapi.com?api_key=", scraperapi_key,
+    "&url=", URLencode(url, reserved = TRUE)
+  )
+  
+  resp <- httr::GET(api_url, httr::timeout(60))
+  
+  if (httr::status_code(resp) != 200) {
+    stop(paste("ScraperAPI request failed, status:", httr::status_code(resp)))
+  }
+  
+  page <- read_html(httr::content(resp, "text", encoding = "UTF-8"))
+  
+  dir.create("/tmp/scrape_cache", showWarnings = FALSE)
+  saveRDS(page, cache_path)
+  
+  page
+}
 
 #* @filter cors
 cors <- function(res) {
@@ -38,7 +84,7 @@ function(url, suburb="", macro_suburb="", region="", res) {
   
   tryCatch({
     
-    urlpage <- read_html(url)
+    urlpage <- fetch_property_page(url)
     
     prc <- urlpage %>% html_element(xpath = '//*[contains(concat(" ", @class, " "), concat(" ", "p24_price", " "))]') %>% html_text(trim = T)
     baseicon        <- urlpage %>% html_elements(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "p24_icons", " " ))]') %>% html_text(trim = T)
@@ -63,7 +109,7 @@ function(url, suburb="", macro_suburb="", region="", res) {
 
     df_url <- df_url %>%
     mutate(
-    erf_size = str_remove_all(erf_size, "(?<=\\d)\\s+(?=\\d)"),  # collapse "3 715" -> "3715"
+    erf_size = str_remove_all(erf_size, "(?<=\\d)\\s+(?=\\d)"),
     erf_size = suppressWarnings(readr::parse_number(as.character(erf_size)))
     )
     df_url <- df_url %>%
@@ -79,7 +125,6 @@ function(url, suburb="", macro_suburb="", region="", res) {
     df_url <- df_url %>% 
       mutate(across(c(beds, bath, gar, leftover, floor, erf_size), ~ suppressWarnings(readr::parse_number(as.character(.)))))
     
-    # YOUR EXACT LOGIC RESTORED: Using a numeric dummy (909090) instead of string ("0909")
     df_url <- df_url %>% mutate(leftover = case_when(12 < beds ~ beds, 12 < bath ~ bath, 15 < gar ~ gar, TRUE ~ leftover))
     df_url <- df_url %>% mutate(beds = case_when(beds == leftover ~ 909090, TRUE ~ beds))
     df_url <- df_url %>% mutate(bath = case_when(bath == leftover ~ 909090, TRUE ~ bath))
@@ -93,7 +138,6 @@ function(url, suburb="", macro_suburb="", region="", res) {
       TRUE                        ~ suppressWarnings(readr::parse_number(price))
     ))
     
-    # YOUR EXACT LOGIC RESTORED: Clearing out the dummy numeric value using NA_real_ (which R accepts for numbers)
     df_url <- df_url %>% mutate(
       beds     = case_when(beds == 909090 ~ NA_real_, TRUE ~ beds),
       leftover = case_when(leftover == 909090 ~ NA_real_, TRUE ~ leftover),
@@ -139,65 +183,41 @@ function(url, suburb="", macro_suburb="", region="", res) {
       mutate(
         feat_clean = coalesce(as.character(feat), ""),
         desc_clean = coalesce(as.character(desc), ""),
-
         is_furnished       = as.integer(str_detect(feat_clean, '(?i)(?<!un)(?<!not )\\bfurnished\\b')),
-
         has_pool           = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )\\bpool\\b(?! table)')),
-
-        # FIXED: was being overwritten by a second assignment that dropped the
-        # feat_clean check and the negation guard entirely. Now checks both
-        # columns, with negation guard applied across the combined text.
         has_internet = as.integer(
           (str_detect(feat_clean, '(?i)(?<!no )(?<!not )\\b(internet|fibre|wifi|wi-fi)\\b') |
           str_detect(desc_clean, '(?i)fibre[- ]ready|wifi|wi-fi|fibre|internet')) &
           !str_detect(desc_clean, '(?i)no\\s+(internet|fibre|wifi|wi-fi)|not\\s+includ\\w*\\s+(internet|fibre|wifi)|without\\s+(internet|fibre|wifi)')
         ),
-
         has_inverter       = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )inverter')),
         has_solar_panels   = as.integer(str_detect(feat_clean, '(?i)(?<!no )(?<!not )solar panels')),
         has_garden         = as.integer(str_detect(feat_clean, '(?i)garden')),
         has_backup         = ifelse(has_solar_panels == 1 | has_inverter == 1, 1, 0),
-
-        # REFINED: broadened trigger phrases + negation guard, since "no security"
-        # / "not a secure complex" was previously able to false-positive
         has_sercurity = as.integer(
           str_detect(desc_clean, '(?i)24[- ]?hour\\s+(manned\\s+)?security|24/7\\s+security|security\\s+estate|secure\\s+estate|secured\\s+complex|guard(ed)?|access\\s+control|boom\\s?gate|electric\\s+fence|armed\\s+response|CCTV|security\\s+(cameras|system|patrol|guard|company|service|personnel|measures|features)') &
           !str_detect(desc_clean, '(?i)no\\s+security|without\\s+security|not\\s+secure')
         ),
-
         in_estate          = as.integer(str_detect(desc_clean, '(?i)\\bestate\\b')),
         in_complex         = as.integer(str_detect(desc_clean, '(?i)\\bcomplex\\b')),
-
         mentions_houseshare = as.integer(str_detect(desc_clean, '(?i)house[- ]?share|room to rent|room available|shared house|shared accommodation|shared living|single room|private room|roommate|room only|rent a room|sharing (house|home|property)|co[- ]?living|communal living|bachelor room|lodger')),
-
         has_mountain_view  = as.integer(str_detect(desc_clean, "(?i)mountain views?|table mountain views?|lion'?s head")),
         has_ocean_view     = as.integer(str_detect(desc_clean, '(?i)sea views?|ocean views?|sea[- ]facing|beachfront|panoramic views?')),
         is_top_floor       = as.integer(str_detect(desc_clean, '(?i)top floor|penthouse|highest floor')),
         near_promenade     = as.integer(str_detect(desc_clean, '(?i)promenade')),
         has_study          = as.integer(str_detect(desc_clean, '(?i)\\bstudy\\b|home office|study nook|study room')),
-
         mentions_renovated = as.integer(str_detect(desc_clean, '(?i)newly renovated|renovations?|refurbished|remodel(l)?ed|upgraded (kitchen|bathroom|finishes|interior)|fully renovated')),
-
-        # REFINED: added a few more common Property24 phrasings for luxury/high-end
         mentions_luxury = as.integer(str_detect(desc_clean, '(?i)\\bluxur(y|ious)\\b|high[- ]end finishes|premium finishes|exclusive (development|estate|residence)|exquisite|opulent|state[- ]of[- ]the[- ]art|top[- ]of[- ]the[- ]range|five[- ]star|5[- ]star|designer (kitchen|finishes)|upmarket|world[- ]class finishes|sophisticated finishes')),
-
         mentions_new_build = as.integer(str_detect(desc_clean, '(?i)brand new (house|apartment|unit|development|build|property|complex|townhouse)|first tenant|newly built|new building|off[- ]plan|new build')),
-
         is_HouseShare = ifelse(is_HouseShare == 1 | mentions_houseshare == 1, 1, 0),
         is_gated      = ifelse(in_estate == 1 | in_complex == 1, 1, 0),
-
         has_balcony = as.integer(str_detect(desc_clean, '(?i)\\bbalcon(y|ies)\\b|private balcony|balcony (with|overlooking)')),
         has_patio   = as.integer(str_detect(desc_clean, '(?i)\\bpatio\\b|courtyard patio|braai patio')),
-
-        # NEW: pet-friendly, checking both feat_clean (structured feature chips,
-        # if Property24 lists "Pets Allowed" as a tag) and desc_clean (free text),
-        # with a negation guard for "no pets" / "not pet friendly"
         is_pet_friendly = as.integer(
           (str_detect(feat_clean, '(?i)pet[- ]?friendly|pets?\\s+allowed') |
           str_detect(desc_clean, '(?i)pet[- ]?friendly|pets?\\s+(allowed|welcome)|small pets? (allowed|welcome)|dogs? (allowed|welcome)|cats? (allowed|welcome)')) &
           !str_detect(desc_clean, '(?i)no\\s+pets?|pets?\\s+not\\s+allowed|strictly\\s+no\\s+pets?')
         ),
-
         floor_level = case_when(
           str_detect(desc_clean, '(?i)ground floor|street level|bottom floor') ~ 0L,
           str_detect(desc_clean, '(?i)\\b1st floor|first floor\\b') ~ 1L,
@@ -212,10 +232,10 @@ function(url, suburb="", macro_suburb="", region="", res) {
       mutate(
         floor = case_when(
           !is.na(floor) & !is.na(erf_size) & floor <= erf_size   ~ floor,
-          !is.na(floor) & !is.na(erf_size) & floor > erf_size    ~ erf_size, # FIXED: was erfsize
+          !is.na(floor) & !is.na(erf_size) & floor > erf_size    ~ erf_size,
           !is.na(floor) & is.na(erf_size)                        ~ floor,
           is.na(floor) & !is.na(erf_size) & type == 'Apartment'  ~ erf_size,
-          is.na(floor) & !is.na(erf_size)                        ~ erf_size / 2, # FIXED: was erf_ize
+          is.na(floor) & !is.na(erf_size)                        ~ erf_size / 2,
           TRUE                                                   ~ floor
         ),
         erf_size = case_when(
