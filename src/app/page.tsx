@@ -1,5 +1,6 @@
 "use client"; // Enables dynamic clicking and tab state
 import { Bar, Cell, BarChart as ReBarChart, TooltipProps } from "recharts";
+import { ComposedChart, Line } from "recharts";
 
 import {
   Tabs,
@@ -362,8 +363,8 @@ export default function VoloraPlatform() {
   ];
 
   useEffect(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL ;
-    
+    const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
+
     fetch(`${baseUrl}/api/training-listings`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch map data");
@@ -435,7 +436,7 @@ export default function VoloraPlatform() {
   // Fetch Locations
   useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
-    
+
     fetch(`${baseUrl}/api/locations`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch locations");
@@ -456,7 +457,7 @@ export default function VoloraPlatform() {
       const initialize = () => {
         const mapboxgl = (window as any).mapboxgl;
         if (!mapboxgl) return;
-        
+
         // Added fallback token to fix the map loading issue
         mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
@@ -1514,24 +1515,33 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     });
 
     const chartData = labels.map((l, i) => ({ range: l, count: counts[i] }));
+    const shapeLabel = chartData.reduce((max, cur) => (cur.count > max.count ? cur : max), chartData[0]);
 
     return (
       <div>
         <ResponsiveContainer width="100%" height={220}>
-          <ReBarChart data={chartData}>
+          <ComposedChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="range" tick={{ fontSize: 10 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={36}>
               {chartData.map((entry, idx) => (
                 <Cell key={idx} fill={entry.range.includes('-') ? "#f43f5e" : entry.range === "0 to 10%" ? "#94a3b8" : "#10b981"} />
               ))}
             </Bar>
-          </ReBarChart>
+            <Line
+              type="monotone"
+              dataKey="count"
+              stroke="#0f172a"
+              strokeWidth={2}
+              dot={{ r: 3, fill: "#0f172a" }}
+              activeDot={false}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
         <p className="text-xs text-slate-500 mt-2">
-          Model {data.direction === "balanced" ? "tracks this suburb evenly" : `${data.direction} in this suburb`} — avg bias {data.avg_bias > 0 ? '+' : ''}{data.avg_bias}%
+          Peaks near <span className="font-medium text-slate-700">{shapeLabel.range}</span>. Model {data.direction === "balanced" ? "tracks this suburb evenly" : `${data.direction} in this suburb`} — avg bias {data.avg_bias > 0 ? '+' : ''}{data.avg_bias}%
         </p>
       </div>
     );
@@ -1898,7 +1908,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
     try {
       // Overlay the agent's edits onto the original payload
       const updatedPayload = { ...deal.python_payload, ...editDraft };
-      
+
       const baseUrl = process.env.NEXT_PUBLIC_FASTAPI_URL;
       const pythonResponse = await fetch(`${baseUrl}/api/predict-quick`, {
         method: 'POST',
@@ -2119,6 +2129,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                           <p className="text-3xl font-bold text-slate-900">{backendStats?.sub_arb ?? 0}</p>
                           <p className="text-xs font-medium text-amber-600 mt-1">Active Deal Alerts</p>
                         </div>
+                        <div>
+                          <p className="text-3xl font-bold text-slate-900">R{backendStats?.sub_square ?? 0}</p>
+                          <p className="text-xs font-medium text-red-600 mt-1">Price/m²</p>
+                        </div>
                       </div>
                     </div>
                     {/* Illustration Placeholder */}
@@ -2144,8 +2158,10 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                   {/* Scraped Listings (Spans 2) */}
                   <Card className="lg:col-span-2 shadow-sm border-slate-200 p-6 flex flex-col justify-between">
                     <div>
-                      <p className="text-sm font-medium text-slate-500">Suburb Price/m²</p>
-                      <p className="text-2xl font-bold text-slate-900 mt-2">{backendStats?.sub_square ?? 0}</p>
+                      <p className="text-sm font-medium text-slate-500">Median Market Variance
+                        <InfoTooltip text="Median gap between Volora's predicted value and the asking price across all listings in this suburb — the typical listing's variance, unaffected by extreme outliers. Positive % = the typical listing is trending underpriced (asking below predicted). Negative % = trending overpriced (asking above predicted). Unlike the Average Market Variance, which can be skewed by one or two unusual listings, the median reflects what a normal listing variance in this suburb actually looks like." />
+                      </p>
+                      <p className="text-2xl font-bold text-slate-900 mt-2">%{backendStats?.avg_med?? 0}</p>
                     </div>
                     <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-4">
                       Updated 10 mins ago
@@ -2194,7 +2210,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
                     {/* Donut Chart */}
                     <Card className="shadow-sm border-slate-200 p-6 flex-1">
-                      <h3 className="text-lg font-bold text-slate-900 mb-1">Portfolio Breakup</h3>
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">Suburb Breakup</h3>
                       <p className="text-sm text-slate-500 mb-6">Current deal distribution</p>
 
                       {(() => {

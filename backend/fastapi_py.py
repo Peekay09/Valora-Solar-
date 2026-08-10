@@ -26,7 +26,7 @@ app = FastAPI(title="fastapi_py")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://vlok.vercel.app"],
+    allow_origins=["https://vlok.vercel.app", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -97,13 +97,30 @@ suburb_counts = (
     .value_counts()
     .to_dict()
 )
- 
+
+def encode_with_label_encoders(df: pd.DataFrame, encoders: dict) -> pd.DataFrame:
+    df = df.copy()
+    for col, enc in encoders.items():
+        if col in df.columns:
+            known_classes = set(enc.classes_)
+            fallback = enc.classes_[0]
+            df[col] = df[col].astype(str).apply(lambda x: x if x in known_classes else fallback)
+            df[col] = enc.transform(df[col])
+    return df
+
+
+_train_encoded = encode_with_label_encoders(train_db, label_encoders)
+_train_encoded = _train_encoded.reindex(columns=mod4.feature_name_, fill_value=0)
+train_db['predicted_price'] = np.exp(mod4.predict(_train_encoded))
+train_db['actual_price'] = np.exp(train_db['price'])
+train_db['verdict'] = train_db.apply(lambda r: get_deal_status(r['predicted_price'], r['actual_price']), axis=1)
+
+
 def get_suburb_listing_count(location: str) -> int:
     if not location:
         return 0
     return suburb_counts.get(location.lower().strip(), 0)
  
-# Define the exact data structure React will send us
 class PropertyInput(BaseModel):
     proptype: str
     location: str
@@ -148,24 +165,19 @@ coord_cache = {}
 # ==========================================
 # HELPER FUNCTIONS
 # ==========================================
-def get_market_pulse(location: str, df: pd.DataFrame) -> list:
-    suburb_data = df[df['location'].str.lower() == location.lower()].copy()
-    
-    if len(suburb_data) < 5:
-        return [15, 55, 30] 
-        
-    suburb_data['actual_price'] = np.exp(suburb_data['price'])
-    total_listings = len(suburb_data)
- 
-    median_price = suburb_data['actual_price'].median()
-    
-    deals = len(suburb_data[suburb_data['actual_price'] <= (median_price * 0.67)])
-    steep = len(suburb_data[suburb_data['actual_price'] >= (median_price * 1.33)])
-    
-    deal_pct = int(round((deals / total_listings) * 100))
-    steep_pct = int(round((steep / total_listings) * 100))
-    fair_pct = 100 - deal_pct - steep_pct 
-    
+def get_market_pulse_from_verdicts(sub_df: pd.DataFrame) -> list:
+   
+    total = len(sub_df)
+    if total < 5:
+        return [15, 55, 30]
+
+    deal_count = sub_df['verdict'].isin(['BARGAIN', 'DEAL']).sum()
+    steep_count = sub_df['verdict'].isin(['STEEP', 'ROBBERY']).sum()
+
+    deal_pct = int(round((deal_count / total) * 100))
+    steep_pct = int(round((steep_count / total) * 100))
+    fair_pct = 100 - deal_pct - steep_pct
+
     return [deal_pct, fair_pct, steep_pct]
  
 def get_city_pulse(df: pd.DataFrame) -> list:
@@ -243,13 +255,7 @@ def get_suburb_coordinates(suburb_name: str):
  
     return {"lat": -33.9249, "lng": 18.4241}
  
-# ================================================================
-# PIM — NEW: confidence tiering. This is the whole point of the
-# quantile models. Interval width alone isn't enough — a wide
-# interval on a sparse suburb and a wide interval on a dense one
-# mean different things, so comp density gates the tier alongside
-# the model's own uncertainty.
-# ================================================================
+
 def get_confidence_tier(suburb_listing_count: int) -> dict:
     if suburb_listing_count > 200:
         return {"tier": "Absolutely Positive", "label": f"Backed by {suburb_listing_count} listings."}
@@ -291,21 +297,9 @@ def predict_with_bounds(input_encoded: pd.DataFrame):
     return point_price, lower_price, upper_price, interval_width_pct
 
 
-def encode_with_label_encoders(df: pd.DataFrame, encoders: dict) -> pd.DataFrame:
-    df = df.copy()
-    for col, enc in encoders.items():
-        if col in df.columns:
-            known_classes = set(enc.classes_)
-            fallback = enc.classes_[0]
-            df[col] = df[col].astype(str).apply(lambda x: x if x in known_classes else fallback)
-            df[col] = enc.transform(df[col])
-    return df
+###########################################################################################################################
 
 
-# ==========================================
-# ENDPOINTS
-# ==========================================
- 
 @app.post("/api/predict")
 def predict_price(prop: PropertyInput):
     clean_input_location = prop.location.lower().strip()
@@ -401,8 +395,8 @@ def predict_price(prop: PropertyInput):
         civic_score=location_data['civic_responsiveness_percentile'].values[0],
         prop_percentile=location_data['property_percentile'].values[0]
     )
-    
-    pulse_array = get_market_pulse(prop.location, train_db)
+    matches = train_db[train_db['location'].str.lower().str.strip() == prop.location.lower().strip()]
+    pulse_array = get_market_pulse_from_verdicts(matches)
     city_pulse_array = get_city_pulse(train_db)
  
     return {
@@ -856,7 +850,7 @@ async def get_suburb_stats(suburb: str = Query(..., description="The name of the
 
 
 
-            market_pulse = get_market_pulse(suburb, sub_df)  # [deal_pct, fair_pct, steep_pct]
+            market_pulse =get_market_pulse_from_verdicts(sub_df)  # [deal_pct, fair_pct, steep_pct]
 
             verdict_counts = sub_df['verdict'].value_counts()
 
