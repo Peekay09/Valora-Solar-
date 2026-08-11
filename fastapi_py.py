@@ -109,6 +109,27 @@ def encode_with_label_encoders(df: pd.DataFrame, encoders: dict) -> pd.DataFrame
     return df
 
 
+def get_deal_status(pred_price: float, ask_price: float) -> str:
+    if ask_price <= 0:
+        return "N/A"
+        
+    price_diff = pred_price - ask_price
+    underprice_prct = (price_diff / pred_price) * 100
+ 
+    if underprice_prct >= 25 :
+        return 'BARGAIN'
+    elif underprice_prct >= 15:
+        return 'DEAL'
+    elif underprice_prct > -15 and underprice_prct < 15:
+        return 'FAIR'
+    elif underprice_prct > -25:
+        return 'STEEP'
+    elif underprice_prct <= -25:
+        return 'ROBBERY'
+    else:
+        return 'N/A'
+
+
 _train_encoded = encode_with_label_encoders(train_db, label_encoders)
 _train_encoded = _train_encoded.reindex(columns=mod4.feature_name_, fill_value=0)
 train_db['predicted_price'] = np.exp(mod4.predict(_train_encoded))
@@ -291,6 +312,9 @@ def predict_with_bounds(input_encoded: pd.DataFrame):
     # guard against quantile crossing, most likely on thin-data suburbs
     if upper_price < lower_price:
         lower_price, upper_price = upper_price, lower_price
+
+    
+    point_price = max(lower_price, min(point_price, upper_price))
  
     interval_width_pct = ((upper_price - lower_price) / point_price) * 100 if point_price > 0 else 0
  
@@ -1268,6 +1292,7 @@ def predict_quick_price(prop: QuickAnalyzeInput):
 
         if not strong_matches.empty:
             strong_matches = strong_matches.sort_values(by='match_percentage', ascending=False)
+            strong_matches = strong_matches.sort_values(by='last_seen_date', ascending=False)
             strong_matches = strong_matches.head(6)
             matched_urls = strong_matches['url'].tolist()
 
