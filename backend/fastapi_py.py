@@ -192,7 +192,7 @@ def get_market_pulse_from_verdicts(sub_df: pd.DataFrame) -> list:
     if total < 5:
         return [15, 55, 30]
 
-    deal_count = sub_df['verdict'].isin(['BARGAIN', 'DEAL']).sum()
+    deal_count = sub_df['verdict'].isin(['BARGAIN']).sum()
     steep_count = sub_df['verdict'].isin(['STEEP', 'ROBBERY']).sum()
 
     deal_pct = int(round((deal_count / total) * 100))
@@ -484,7 +484,7 @@ def get_recent_map_listings():
         )
  
         # E. Count the true verified deals instantly
-        arb_count = int(df['deal_verdict'].isin(['BARGAIN', 'DEAL']).sum())
+        arb_count = int(df['deal_verdict'].isin(['BARGAIN']).sum())
  
         # ==========================================
  

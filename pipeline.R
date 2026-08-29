@@ -190,12 +190,9 @@ for (i in 1:nrow(trg_dbfiles)){
   
 }
 
-# ==============================================================================
-# 1. DATABASE MAINTENANCE: PRICE TRACKING & RETURNING LISTINGS
-# ==============================================================================
+
 cat("\n=== STARTING VOLORA CDC & DEDUPLICATION ===\n")
 
-# Pull the latest known prices and URLs for all active listings
 existing_data <- dbGetQuery(supabase, '
   SELECT DISTINCT ON (url) 
     url, 
@@ -204,7 +201,6 @@ existing_data <- dbGetQuery(supabase, '
   ORDER BY url, date_scraped DESC
 ')
 
-# A. DETECT PRICE CHANGES (Drops & Hikes)
 price_changes <- train_ALL %>%
   rename(url = prop_url) %>%
   inner_join(existing_data, by = "url") %>%
@@ -219,10 +215,8 @@ price_changes <- train_ALL %>%
   select(url, location, price_new, price_old, price_diff, price_drop, pct_change, date_changed)
 
 if (nrow(price_changes) > 0) {
-  # 1. Write the history log to your tracking table
   dbWriteTable(supabase, "price_tracking_df", price_changes, append = TRUE)
   
-  # 2. Update the master table to reflect the live price and increment the drop counter
   for (j in 1:nrow(price_changes)) {
     dbExecute(supabase, sprintf(
       'UPDATE "FINAL DAILY RENTAL DATA" 
@@ -238,13 +232,12 @@ if (nrow(price_changes) > 0) {
   cat("No price changes detected today.\n")
 }
 
-# B. UPDATE DAYS ON MARKET (For all returning listings)
 returning_listings <- train_ALL %>% filter(prop_url %in% existing_data$url)
 
 if (nrow(returning_listings) > 0) {
   ids_sql <- paste0("('", paste(returning_listings$prop_url, collapse = "','"), "')")
   dbExecute(supabase, sprintf(
-    'UPDATE "FINAL DAILY RENTAL DATA"
+    'UPDATE "FINAL DAILY RENTAL DATA"'
      SET days_on_market = days_on_market + 1,
          last_seen_date = \'%s\'
      WHERE url IN %s',
@@ -253,7 +246,6 @@ if (nrow(returning_listings) > 0) {
   cat(sprintf("Updated days_on_market for %d returning listings.\n", nrow(returning_listings)))
 }
 
-# C. GHOST DECAY (Market cleared flag)
 today_urls_sql <- paste0("('", paste(train_ALL$prop_url, collapse = "','"), "')")
 dbExecute(supabase, sprintf(
   'UPDATE "FINAL DAILY RENTAL DATA"
@@ -265,9 +257,6 @@ dbExecute(supabase, sprintf(
   today_urls_sql
 ))
 
-# ==============================================================================
-# 2. ISOLATE BRAND NEW LISTINGS FOR SCRAPER API
-# ==============================================================================
 train_ALL_new <- train_ALL %>%
   filter(!prop_url %in% existing_urls$url)
 
@@ -278,12 +267,9 @@ cat(sprintf("New listings to deep-scrape: %d\n\n", nrow(train_ALL_new)))
 
 if(nrow(train_ALL_new) == 0) {
   cat("No new listings today. Pipeline finished successfully! 🎉\n")
-  quit(save = "no") # Safely stops the script here
+  quit(save = "no") 
 }
 
-# ==============================================================================
-# 3. SCRAPER API DEEP-SCRAPE (ONLY ON NEW URLS)
-# ==============================================================================
 trg_propurl <- tibble(url = train_ALL_new$prop_url)
 trg_propurl2 <- trg_propurl %>%
   mutate(url = paste0('https://www.property24.com', url)) %>%
@@ -323,10 +309,6 @@ for (i in 1:nrow(trg_propurl2)){
 }
 message("🎉 Deep Scraping Complete!")
 
-# ==============================================================================
-# 4. FULL CLEANING & FEATURE ENGINEERING
-# ==============================================================================
-# Function to clean lease data
 clean_lease_data <- function(df) {
   df %>%
     mutate(
@@ -342,7 +324,6 @@ clean_lease_data <- function(df) {
     )
 }
 
-# Pull StreetSignal API data
 API <- GET('https://streetsignal.co.za/api//v1/suburbs.json')
 api_text <- content(API, 'text', encoding = 'utf-8')
 streetsignal_suburb_df <- fromJSON(api_text) %>% rename(location = name)
@@ -396,7 +377,6 @@ new_fully_cleaned <- train_ALL_new %>%
   ungroup() %>%
   select(-fl_location_avg, -erf_location_avg, -feat_clean, -desc_clean, -desc, -feat) %>%
   
-  # Apply Suburb Mappings
   mutate(
     macro_suburb = case_when(
       location %in% c("Aurora", "Clara Anna Fontein", "D'urbanvale", "Durbanville Central", "Durbanville Hills", "Eversdal", "Eversdal Heights", "Goedemoed", "Kenridge", "Kenridge Heights", "Pinehurst", "Protea Valley", "Proteaville", "Sonstraal", "Sonstraal East", "Sonstraal Heights", "Stellenberg", "Stellenridge", "Stellenryk", "Uitzicht", "Valmary Park", "Van Riebeeckshof", "Vierlanden", "Welgedacht", "Wellway Park East") ~ 'Durbanville',
@@ -441,14 +421,12 @@ new_fully_cleaned <- train_ALL_new %>%
       TRUE ~ 'unknown'
     ),
     
-    # StreetSignal location standardization
     location = case_when(
       location=="D'urbanvale"~"D'Urbanvale", location=='Buh Rein Estate'~'Buh-Rein Estate', location=='Avondale'~'Avondale Parow', location=='Aan de Wijnlanden'~'Aan De Wijnlanden Estate', location=="Bel'aire"~"Bel'Aire", location=='Bellville Central'~'Bellville CBD', location=='Bishopscourt Village'~'Bishopscourt', location=='Bloubergstrand'~'Blaauwbergstrand', location=='Claremont Upper'~'Claremont', location=='Constantia Heights'~'Constantia', location=='Durbanville Central'~'Durbanville', location=='Eden Park'~'Edenpark', location=='Erinvale Golf Estate'~'Erinvale Estate', location=='Glencairn Heights'~'Glencairn', location=='Eikenbosch'~'Eikenbosch Kuils River', location=='Goodwood Central'~'Goodwood Ext 1', location=='Glenlilly'~'Glenlily', location=='Gordons Bay Central'~'Gordons Bay', location=='Greenways Golf Estate'~'Greenways', location=='High Riding Country Estate'~'High Riding', location=='Gordon Strand Estate'~'Gordons Strand Estate', location=='Joostenbergvlakte'~'Joostenbergvlakte Smallholdings', location=='Kelderhof Country Village'~'Kelderhof', location=='Kenilworth Upper'~'Kenilworth', location=='Kleinbron Estate'~'Kleinbron', location=='Kleinbron Park'~'Kleinbron', location=='Klipheuwel'~'Klipheuwel Housing Scheme', location=='Kuils River South'~'Kuilsrivier South Smallholdings', location=='Kuilsrivier Industria'~'Kuilsrivier South Smallholdings', location=='Langeberg Heights'~'Langeberg Hoogte', location=='Longdown'~'Longdown Estate', location=='Melkbosstrand Central'~'Melkbosch Strand', location=='Milnerton Central'~'Milnerton', location=='Noordhaven'~'Noordhoek', location=='Oostersee'~'Oosterzee-Bellville', location=='Jakarandas'~'Jacarandas', location=='Paardevlei'~'Paarde Vlei', location=='Parklands East'~'Parklands', location=='Parklands North'~'Parklands', location=='Parow Central'~'Parow', location=='Plattekloof'~'Plattekloof 1', location=='Portlands'~'Portland', location=='Rondebosch Village'~'Rondebosch', location=='San Michel'~"Simon's Town", location=='Seaforth'~"Simon's Town", location=='Simons Kloof'~"Simon's Town", location=='Simons Town Central'~"Simon's Town", location=='Somerset Heights'~'Somerset West', location=='Somerset West Central'~'Somerset West', location=='Soneike'~'Soneike I', location=='Steenberg Golf Estate'~'Steenberg', location=='Strand Central'~'Strand', location=='Strand North'~'Strand', location=='Strand South'~'Strand', location=='Tre Donne Estate'~'Tre Donne', location=='Tyger Valley'~'Tygervalley', location=='Tyger Waterfront'~'Tygervalley Waterfront', location=='Vredenberg'~'Vredenberg-Bellville', location=='Welgelegen 1'~'Welgelegen', location=='Westridge'~'Westridge - Mitchells Plain', location=='Wynberg Upper'~'Wynberg', location=='Strandfontein Village'~'Strandfontein', location=='Welgelegen 3'~'Welgelegen', location=='Chapmans Peak'~'Noordhoek', location=='Crofters Valley'~'Noordhoek', location=='Somerset West Mall Triangle'~'Somerset West', location=='Zwaanswyk'~'Constantia',
       TRUE ~ location
     )
   ) %>%
   
-  # Join StreetSignal and process final columns
   left_join(streetsignal_suburb_df, by = 'location') %>%
   mutate(
     safety_score = ifelse(is.na(safety_score), 50, safety_score),
@@ -480,20 +458,17 @@ new_fully_cleaned <- train_ALL_new %>%
   ) %>%
   ungroup() %>%
   
-  # Final Volora Pipeline States
   clean_lease_data() %>%
   mutate(
     days_on_market = 0,
-    price_drop_count = 0, # Note: Price diffs logic is handled separately in dedup if you add it back, but new ones are 0
+    price_drop_count = 0, 
     market_cleared = FALSE,
     first_seen_date = Sys.Date(),
     last_seen_date = Sys.Date(),
     date_scraped = as.character(Sys.Date())
   )
 
-# ==============================================================================
-# 5. ATOMIC APPEND TO DATABASE
-# ==============================================================================
+
 cat(sprintf("Ready to append %d fully cleaned NEW listings to the database.\n", nrow(new_fully_cleaned)))
 
 dbBegin(supabase)

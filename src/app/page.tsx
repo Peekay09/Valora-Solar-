@@ -1,6 +1,5 @@
 "use client"; // Enables dynamic clicking and tab state
-import { Bar, Cell, BarChart as ReBarChart, TooltipProps } from "recharts";
-import { ComposedChart, Line } from "recharts";
+import { Bar, Cell, ComposedChart, Line, BarChart as ReBarChart, TooltipProps } from "recharts";
 
 import {
   Tabs,
@@ -704,7 +703,8 @@ export default function VoloraPlatform() {
               <Card className="md:col-span-3 bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-0 overflow-hidden">
                 <div className="p-8">
                   <h2 className="text-2xl font-bold text-slate-100 mb-6">Live Arbitrage Heatmap</h2>
-                  <div className="w-full h-[500px]">
+                  {/* Added responsive height: 350px on phones, 500px on laptops */}
+                  <div className="w-full h-[350px] lg:h-[500px]">
                     <LeafletMap markers={activeDeals} />
                   </div>
                 </div>
@@ -1108,8 +1108,8 @@ export default function VoloraPlatform() {
               <p className="text-slate-400">Live structural data tracked by your daily scraper pipeline.</p>
             </div>
 
-            <div ref={mapContainerRef} className="w-full h-[500px] rounded-xl overflow-hidden border border-slate-700 shadow-xl relative" />
-
+            {/* Added responsive height: 350px on phones, 500px on laptops */}
+            <div ref={mapContainerRef} className="w-full h-[350px] lg:h-[500px] rounded-xl overflow-hidden border border-slate-700 shadow-xl relative" />
             {selectedSuburb && (
               <div className="w-full mt-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
                 <div className="text-center mb-8 relative">
@@ -2061,7 +2061,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center w-96 relative">
+          <div className="flex items-center w-full md:w-96 relative">
             <RiSearchLine className="w-4 h-4 text-slate-400 absolute left-3 z-10" />
             <AutoComplete
               className="w-64 pl-8"
@@ -2161,7 +2161,7 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                       <p className="text-sm font-medium text-slate-500">Median Market Variance
                         <InfoTooltip text="Median gap between Volora's predicted value and the asking price across all listings in this suburb — the typical listing's variance, unaffected by extreme outliers. Positive % = the typical listing is trending underpriced (asking below predicted). Negative % = trending overpriced (asking above predicted). Unlike the Average Market Variance, which can be skewed by one or two unusual listings, the median reflects what a normal listing variance in this suburb actually looks like." />
                       </p>
-                      <p className="text-2xl font-bold text-slate-900 mt-2">%{backendStats?.avg_med?? 0}</p>
+                      <p className="text-2xl font-bold text-slate-900 mt-2">%{backendStats?.avg_med ?? 0}</p>
                     </div>
                     <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-4">
                       Updated 10 mins ago
@@ -2492,320 +2492,324 @@ const AgentDashboard = ({ onLogout }: { onLogout: () => void }) => {
                 </div>
 
                 {/* PIPELINE GRID - DYNAMICALLY POPULATED */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-
-                  <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-slate-900">Active Pipeline</h3>
-                    {savedBook.length > 0 && (
-                      <button
-                        onClick={handleClearBook}
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all cursor-pointer"
-                      >
-                        <RiDeleteBinLine className="w-3.5 h-3.5" />
-                        Clear Book ({savedBook.length})
-                      </button>
-                    )}
-                  </div>
-
-                  {/* CSS Grid Header Row */}
-                  <div className="grid grid-cols-12 gap-4 p-4 border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <div className="col-span-3">Property</div>
-                    <div className="col-span-2">Type</div>
-                    <div className="col-span-2">Asking Price</div>
-                    <div className="col-span-2">Volora Value</div>
-                    <div className="col-span-2 flex items-center">
-                      Deal Score
-                      <InfoTooltip text="0–100. Weighted score: 55% price arbitrage (how underpriced vs Volora's prediction), 25% suburb safety score, 15% suburb civic score, 5% property percentile. Safety and civic inputs reflect the suburb overall, not this specific unit." />
+                {/* PIPELINE GRID - DYNAMICALLY POPULATED */}
+                {/* Added overflow-x-auto to allow horizontal scrolling on phones */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                  {/* Added min-w-[800px] to force the table to stay wide inside the scrollable box */}
+                  <div className="min-w-[800px]">
+                    <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+                      <h3 className="text-lg font-bold text-slate-900">Active Pipeline</h3>
+                      {savedBook.length > 0 && (
+                        <button
+                          onClick={handleClearBook}
+                          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all cursor-pointer"
+                        >
+                          <RiDeleteBinLine className="w-3.5 h-3.5" />
+                          Clear Book ({savedBook.length})
+                        </button>
+                      )}
                     </div>
-                    <div className="col-span-1 text-right">Actions</div>
-                  </div>
 
-                  {/* Data Rows map over the dynamically updated state */}
-                  <div className="divide-y divide-slate-100">
-                    {savedBook.length === 0 ? (
-                      <div className="p-8 text-center text-slate-400 text-sm">
-                        Your book is currently empty. Analyze a property above to add it here.
+                    {/* CSS Grid Header Row */}
+                    <div className="grid grid-cols-12 gap-4 p-4 border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <div className="col-span-3">Property</div>
+                      <div className="col-span-2">Type</div>
+                      <div className="col-span-2">Asking Price</div>
+                      <div className="col-span-2">Volora Value</div>
+                      <div className="col-span-2 flex items-center">
+                        Deal Score
+                        <InfoTooltip text="0–100. Weighted score: 55% price arbitrage (how underpriced vs Volora's prediction), 25% suburb safety score, 15% suburb civic score, 5% property percentile. Safety and civic inputs reflect the suburb overall, not this specific unit." />
                       </div>
-                    ) : (
-                      savedBook.map((deal: any, idx: number) => {
-                        // Skip the empty initialized object from defaultMockBook if it renders
-                        if (!deal.address) return null;
+                      <div className="col-span-1 text-right">Actions</div>
+                    </div>
 
-                        // Check if this specific row is the one currently expanded
-                        const isExpanded = expandedDealId === (deal.id || idx);
+                    {/* Data Rows map over the dynamically updated state */}
+                    <div className="divide-y divide-slate-100">
+                      {savedBook.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400 text-sm">
+                          Your book is currently empty. Analyze a property above to add it here.
+                        </div>
+                      ) : (
+                        savedBook.map((deal: any, idx: number) => {
+                          // Skip the empty initialized object from defaultMockBook if it renders
+                          if (!deal.address) return null;
 
-                        return (
-                          <div key={deal.id || idx} className="flex flex-col transition-colors">
-                            {/* 1. THE MAIN VISIBLE ROW */}
-                            <div className="grid grid-cols-12 gap-4 p-4 items-center text-sm hover:bg-slate-50 transition-colors">
-                              <div className="col-span-3 font-medium text-slate-900">{deal.address}</div>
-                              <div className="col-span-2 text-slate-500">{deal.type}</div>
-                              <div className="col-span-2 text-slate-600">
-                                R {typeof deal.asking === 'number' ? deal.asking.toLocaleString() : deal.asking}
-                              </div>
+                          // Check if this specific row is the one currently expanded
+                          const isExpanded = expandedDealId === (deal.id || idx);
 
-                              {/* STYLED COLUMN: Flexbox separates the values clearly */}
-                              <div className="col-span-2 flex flex-col justify-center">
-                                <span className="font-bold text-slate-900">
-                                  R {typeof deal.volora === 'number' ? deal.volora.toLocaleString() : deal.volora}
-                                </span>
-                                <span className="text-[10px] font-medium text-slate-400 mt-0.5">
-                                  R {typeof deal.lower_bound === 'number' ? deal.lower_bound.toLocaleString() : deal.lower_bound} - R {typeof deal.upper_bound === 'number' ? deal.upper_bound.toLocaleString() : deal.upper_bound}
-                                </span>
-                              </div>
-
-                              {/* Dynamic Color Pill */}
-                              <div className="col-span-2">
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${deal.score ? (deal.score >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : deal.score >= 35 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200') :
-                                  'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                                  {deal.score ? `${deal.score}` : 'N/A'}
-                                </span>
-                              </div>
-
-                              {/* Action Icons */}
-                              <div className="col-span-1 flex justify-end gap-2 text-slate-400 items-center">
-                                <button className="hover:text-amber-500 transition-colors"><RiEyeLine className="w-5 h-5" /></button>
-                                <button className="hover:text-rose-500 transition-colors"><RiDeleteBinLine className="w-5 h-5" /></button>
-
-                                {/* THE NEW EXPAND/COLLAPSE ARROW */}
-                                <button
-                                  onClick={() => setExpandedDealId(isExpanded ? null : (deal.id || idx))}
-                                  className="hover:text-slate-900 transition-colors ml-1 p-1 hover:bg-slate-200 rounded"
-                                >
-                                  {isExpanded ? <RiArrowUpSLine className="w-5 h-5" /> : <RiArrowDownSLine className="w-5 h-5" />}
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* 2. THE HIDDEN DROPDOWN PANEL (Shows when arrow is clicked) */}
-                            {isExpanded && (
-                              <div className="p-5 mx-4 mb-4 bg-slate-50/80 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm animate-in fade-in slide-in-from-top-2 shadow-inner">
-
-                                {/* Left Column: Variance Metrics */}
-                                <div>
-                                  <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-wider">Variance Metrics</h4>
-                                  <div className="bg-white p-4 rounded-lg border border-slate-200 space-y-2">
-                                    <p className="flex justify-between items-center text-slate-500">
-                                      <span>Asking Price:</span>
-                                      <span className="font-medium text-slate-900">R {deal.asking?.toLocaleString()}</span>
-                                    </p>
-                                    <p className="flex justify-between items-center text-slate-500">
-                                      <span>Volora Value:</span>
-                                      <span className="font-medium text-slate-900">R {deal.volora?.toLocaleString()}</span>
-                                    </p>
-
-                                    <div className="border-b border-slate-100 my-2"></div>
-
-                                    <p className="flex justify-between items-center text-slate-500">
-                                      <span>Value Difference:</span>
-                                      <span className="font-medium text-slate-900">R {deal.price_diff?.toLocaleString() || '0'}</span>
-                                    </p>
-                                    <p className="flex justify-between items-center text-slate-500">
-                                      <span className="flex items-center">
-                                        Percentage Diff:
-                                        <InfoTooltip text="How far Volora's predicted value sits from the asking price, as a % of predicted value. Positive = asking price is below what Volora predicts (potentially underpriced). Negative = asking price is above prediction (potentially overpriced)." />
-                                      </span>
-                                      {/* Dynamic Green/Red Badge for Percentage */}
-                                      <span className={`font-bold px-2 py-0.5 rounded ${deal.percent_diff > 0
-                                        ? 'bg-emerald-100 text-emerald-700'
-                                        : 'bg-rose-100 text-rose-700'
-                                        }`}>
-                                        {deal.percent_diff > 0 ? '+' : ''}{deal.percent_diff?.toFixed(2)}%
-                                      </span>
-                                    </p>
-                                  </div>
+                          return (
+                            <div key={deal.id || idx} className="flex flex-col transition-colors">
+                              {/* 1. THE MAIN VISIBLE ROW */}
+                              <div className="grid grid-cols-12 gap-4 p-4 items-center text-sm hover:bg-slate-50 transition-colors">
+                                <div className="col-span-3 font-medium text-slate-900">{deal.address}</div>
+                                <div className="col-span-2 text-slate-500">{deal.type}</div>
+                                <div className="col-span-2 text-slate-600">
+                                  R {typeof deal.asking === 'number' ? deal.asking.toLocaleString() : deal.asking}
                                 </div>
 
-                                {/* Right Column: Property Traits (Now Editable!) */}
-                                <div className="flex flex-col">
+                                {/* STYLED COLUMN: Flexbox separates the values clearly */}
+                                <div className="col-span-2 flex flex-col justify-center">
+                                  <span className="font-bold text-slate-900">
+                                    R {typeof deal.volora === 'number' ? deal.volora.toLocaleString() : deal.volora}
+                                  </span>
+                                  <span className="text-[10px] font-medium text-slate-400 mt-0.5">
+                                    R {typeof deal.lower_bound === 'number' ? deal.lower_bound.toLocaleString() : deal.lower_bound} - R {typeof deal.upper_bound === 'number' ? deal.upper_bound.toLocaleString() : deal.upper_bound}
+                                  </span>
+                                </div>
 
-                                  <div className="flex justify-between items-center mb-3">
-                                    <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center">
-                                      Property Traits
-                                      <InfoTooltip text="Detected from the listing description text by our scraping pipeline. A red X means the feature wasn't mentioned in the listing — not confirmed absent from the property.Feel free to edit manually if you know better." />
-                                    </h4>
+                                {/* Dynamic Color Pill */}
+                                <div className="col-span-2">
+                                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${deal.score ? (deal.score >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : deal.score >= 35 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200') :
+                                    'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                                    {deal.score ? `${deal.score}` : 'N/A'}
+                                  </span>
+                                </div>
 
-                                    {/* The Edit Toggle Button */}
-                                    {editingDealId === (deal.id || idx) ? (
+                                {/* Action Icons */}
+                                <div className="col-span-1 flex justify-end gap-2 text-slate-400 items-center">
+                                  <button className="hover:text-amber-500 transition-colors"><RiEyeLine className="w-5 h-5" /></button>
+                                  <button className="hover:text-rose-500 transition-colors"><RiDeleteBinLine className="w-5 h-5" /></button>
+
+                                  {/* THE NEW EXPAND/COLLAPSE ARROW */}
+                                  <button
+                                    onClick={() => setExpandedDealId(isExpanded ? null : (deal.id || idx))}
+                                    className="hover:text-slate-900 transition-colors ml-1 p-1 hover:bg-slate-200 rounded"
+                                  >
+                                    {isExpanded ? <RiArrowUpSLine className="w-5 h-5" /> : <RiArrowDownSLine className="w-5 h-5" />}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 2. THE HIDDEN DROPDOWN PANEL (Shows when arrow is clicked) */}
+                              {isExpanded && (
+                                <div className="p-5 mx-4 mb-4 bg-slate-50/80 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm animate-in fade-in slide-in-from-top-2 shadow-inner">
+
+                                  {/* Left Column: Variance Metrics */}
+                                  <div>
+                                    <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-wider">Variance Metrics</h4>
+                                    <div className="bg-white p-4 rounded-lg border border-slate-200 space-y-2">
+                                      <p className="flex justify-between items-center text-slate-500">
+                                        <span>Asking Price:</span>
+                                        <span className="font-medium text-slate-900">R {deal.asking?.toLocaleString()}</span>
+                                      </p>
+                                      <p className="flex justify-between items-center text-slate-500">
+                                        <span>Volora Value:</span>
+                                        <span className="font-medium text-slate-900">R {deal.volora?.toLocaleString()}</span>
+                                      </p>
+
+                                      <div className="border-b border-slate-100 my-2"></div>
+
+                                      <p className="flex justify-between items-center text-slate-500">
+                                        <span>Value Difference:</span>
+                                        <span className="font-medium text-slate-900">R {deal.price_diff?.toLocaleString() || '0'}</span>
+                                      </p>
+                                      <p className="flex justify-between items-center text-slate-500">
+                                        <span className="flex items-center">
+                                          Percentage Diff:
+                                          <InfoTooltip text="How far Volora's predicted value sits from the asking price, as a % of predicted value. Positive = asking price is below what Volora predicts (potentially underpriced). Negative = asking price is above prediction (potentially overpriced)." />
+                                        </span>
+                                        {/* Dynamic Green/Red Badge for Percentage */}
+                                        <span className={`font-bold px-2 py-0.5 rounded ${deal.percent_diff > 0
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-rose-100 text-rose-700'
+                                          }`}>
+                                          {deal.percent_diff > 0 ? '+' : ''}{deal.percent_diff?.toFixed(2)}%
+                                        </span>
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Right Column: Property Traits (Now Editable!) */}
+                                  <div className="flex flex-col">
+
+                                    <div className="flex justify-between items-center mb-3">
+                                      <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center">
+                                        Property Traits
+                                        <InfoTooltip text="Detected from the listing description text by our scraping pipeline. A red X means the feature wasn't mentioned in the listing — not confirmed absent from the property.Feel free to edit manually if you know better." />
+                                      </h4>
+
+                                      {/* The Edit Toggle Button */}
+                                      {editingDealId === (deal.id || idx) ? (
+                                        <button
+                                          onClick={() => setEditingDealId(null)}
+                                          className="text-xs font-medium text-slate-500 hover:text-slate-700 underline"
+                                        >
+                                          Cancel Edit
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => {
+                                            setEditingDealId(deal.id || idx);
+                                            setEditDraft({ ...(deal.listing_input || deal.Listing_input || {}) });
+                                          }}
+                                          className="text-xs font-bold text-amber-700 hover:text-amber-800 bg-amber-100 px-2 py-1 rounded transition-colors"
+                                        >
+                                          Edit Traits
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {/* Safely catch whichever key name is currently stored in LocalStorage */}
+                                    {(() => {
+                                      const isEditing = editingDealId === (deal.id || idx);
+                                      const traits = isEditing ? editDraft : (deal.listing_input || deal.Listing_input || {});
+
+                                      return (
+                                        <div className={`p-4 rounded-lg border flex flex-col gap-4 transition-all ${isEditing ? 'bg-amber-50/50 border-amber-300 shadow-inner' : 'bg-white border-slate-200'}`}>
+
+                                          {/* --- TOP: SIZES (Floor & Erf) --- */}
+                                          <div className="grid grid-cols-2 gap-4 border-b border-slate-200/60 pb-4">
+                                            <div>
+                                              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Floor Size (m²)</label>
+                                              {isEditing ? (
+                                                <input
+                                                  type="number"
+                                                  value={traits.floor || 0}
+                                                  onChange={(e) => setEditDraft((prev: any) => ({ ...prev, floor: Number(e.target.value) }))}
+                                                  className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                                />
+                                              ) : (
+                                                <span className="text-sm font-bold text-slate-700">{traits.floor > 0 ? traits.floor : 'N/A'}</span>
+                                              )}
+                                            </div>
+                                            <div>
+                                              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Erf Size (m²)</label>
+                                              {isEditing ? (
+                                                <input
+                                                  type="number"
+                                                  value={traits.erf_size || 0}
+                                                  onChange={(e) => setEditDraft((prev: any) => ({ ...prev, erf_size: Number(e.target.value) }))}
+                                                  className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                                />
+                                              ) : (
+                                                <span className="text-sm font-bold text-slate-700">{traits.erf_size > 0 ? traits.erf_size : 'N/A'}</span>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* --- BOTTOM: BOOLEAN AMENITIES --- */}
+                                          {/* --- LEASE TERM (select, not a boolean trait) --- */}
+                                          <div className="border-b border-slate-200/60 pb-4">
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Lease Term</label>
+                                            {isEditing ? (
+                                              <select
+                                                value={traits.lease_term || 'Long Term'}
+                                                onChange={(e) => setEditDraft((prev: any) => ({ ...prev, lease_term: e.target.value }))}
+                                                className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                              >
+                                                <option value="Short Term">Short Term</option>
+                                                <option value="Long Term">Long Term</option>
+                                              </select>
+                                            ) : (
+                                              <span className="text-sm font-bold text-slate-700">{traits.lease_term || 'N/A'}</span>
+                                            )}
+                                          </div>
+
+                                          {/* --- BOTTOM: BOOLEAN AMENITIES --- */}
+                                          <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                              { label: 'Pool', key: 'has_pool' },
+                                              { label: 'Backup Power', key: 'has_backup' },
+                                              { label: 'Gated / Estate', key: 'is_gated' },
+                                              { label: 'Security', key: 'has_sercurity' },
+                                              { label: 'Ocean View', key: 'has_ocean_view' },
+                                              { label: 'Mountain View', key: 'has_mountain_view' },
+                                              { label: 'Balcony', key: 'has_balcony' },
+                                              { label: 'Internet / Fibre', key: 'has_internet' },
+                                              { label: 'Furnished', key: 'is_furnished' },
+                                              { label: 'Renovated', key: 'mentions_renovated' },
+                                              { label: 'Study', key: 'has_study' },
+                                              { label: 'Modern or Top-End Finishes', key: 'mentions_luxury' },
+                                              { label: 'Garden', key: 'has_garden' },
+                                              { label: 'House Share / Shared Accom', key: 'is_HouseShare' },
+                                              { label: 'Pet Friendly', key: 'is_pet_friendly' }
+                                            ].map((trait, i) => {
+
+                                              let rawVal = traits[trait.key];
+                                              if (trait.key === 'has_sercurity' && rawVal === undefined) rawVal = traits['has_security'];
+
+                                              const isActive = rawVal === true || rawVal === 1 || rawVal === "1" || String(rawVal).toLowerCase() === "true";
+
+                                              return (
+                                                <div
+                                                  key={i}
+                                                  onClick={() => {
+                                                    if (isEditing) {
+                                                      setEditDraft((prev: any) => ({ ...prev, [trait.key]: isActive ? 0 : 1 }));
+                                                    }
+                                                  }}
+                                                  className={`flex items-center gap-2 select-none ${isEditing ? 'cursor-pointer hover:bg-white p-1 -m-1 rounded shadow-sm border border-amber-100' : ''}`}
+                                                >
+                                                  {isActive ? (
+                                                    <RiCheckLine className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                  ) : (
+                                                    <RiCloseLine className="w-4 h-4 text-rose-400 shrink-0" />
+                                                  )}
+                                                  <span className={isActive ? "text-slate-700 font-medium" : "text-slate-400 line-through"}>
+                                                    {trait.label}
+                                                  </span>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+
+                                        </div>
+                                      );
+                                    })()}
+
+                                    {/* The Re-Calculate Execution Button */}
+                                    {editingDealId === (deal.id || idx) && (
                                       <button
-                                        onClick={() => setEditingDealId(null)}
-                                        className="text-xs font-medium text-slate-500 hover:text-slate-700 underline"
+                                        onClick={() => handleRevalue(deal)}
+                                        disabled={isRevaluing}
+                                        className="mt-3 w-full bg-slate-900 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors flex justify-center items-center gap-2 shadow-sm"
                                       >
-                                        Cancel Edit
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => {
-                                          setEditingDealId(deal.id || idx);
-                                          setEditDraft({ ...(deal.listing_input || deal.Listing_input || {}) });
-                                        }}
-                                        className="text-xs font-bold text-amber-700 hover:text-amber-800 bg-amber-100 px-2 py-1 rounded transition-colors"
-                                      >
-                                        Edit Traits
+                                        {isRevaluing ? <RiLoader4Line className="w-4 h-4 animate-spin" /> : <RiFlashlightLine className="w-4 h-4 text-amber-500" />}
+                                        {isRevaluing ? 'Recalculating...' : 'Run Re-Valuation'}
                                       </button>
                                     )}
                                   </div>
 
-                                  {/* Safely catch whichever key name is currently stored in LocalStorage */}
-                                  {(() => {
-                                    const isEditing = editingDealId === (deal.id || idx);
-                                    const traits = isEditing ? editDraft : (deal.listing_input || deal.Listing_input || {});
-
-                                    return (
-                                      <div className={`p-4 rounded-lg border flex flex-col gap-4 transition-all ${isEditing ? 'bg-amber-50/50 border-amber-300 shadow-inner' : 'bg-white border-slate-200'}`}>
-
-                                        {/* --- TOP: SIZES (Floor & Erf) --- */}
-                                        <div className="grid grid-cols-2 gap-4 border-b border-slate-200/60 pb-4">
-                                          <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Floor Size (m²)</label>
-                                            {isEditing ? (
-                                              <input
-                                                type="number"
-                                                value={traits.floor || 0}
-                                                onChange={(e) => setEditDraft((prev: any) => ({ ...prev, floor: Number(e.target.value) }))}
-                                                className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
-                                              />
-                                            ) : (
-                                              <span className="text-sm font-bold text-slate-700">{traits.floor > 0 ? traits.floor : 'N/A'}</span>
-                                            )}
-                                          </div>
-                                          <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Erf Size (m²)</label>
-                                            {isEditing ? (
-                                              <input
-                                                type="number"
-                                                value={traits.erf_size || 0}
-                                                onChange={(e) => setEditDraft((prev: any) => ({ ...prev, erf_size: Number(e.target.value) }))}
-                                                className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
-                                              />
-                                            ) : (
-                                              <span className="text-sm font-bold text-slate-700">{traits.erf_size > 0 ? traits.erf_size : 'N/A'}</span>
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        {/* --- BOTTOM: BOOLEAN AMENITIES --- */}
-                                        {/* --- LEASE TERM (select, not a boolean trait) --- */}
-                                        <div className="border-b border-slate-200/60 pb-4">
-                                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Lease Term</label>
-                                          {isEditing ? (
-                                            <select
-                                              value={traits.lease_term || 'Long Term'}
-                                              onChange={(e) => setEditDraft((prev: any) => ({ ...prev, lease_term: e.target.value }))}
-                                              className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
-                                            >
-                                              <option value="Short Term">Short Term</option>
-                                              <option value="Long Term">Long Term</option>
-                                            </select>
-                                          ) : (
-                                            <span className="text-sm font-bold text-slate-700">{traits.lease_term || 'N/A'}</span>
-                                          )}
-                                        </div>
-
-                                        {/* --- BOTTOM: BOOLEAN AMENITIES --- */}
-                                        <div className="grid grid-cols-2 gap-3">
-                                          {[
-                                            { label: 'Pool', key: 'has_pool' },
-                                            { label: 'Backup Power', key: 'has_backup' },
-                                            { label: 'Gated / Estate', key: 'is_gated' },
-                                            { label: 'Security', key: 'has_sercurity' },
-                                            { label: 'Ocean View', key: 'has_ocean_view' },
-                                            { label: 'Mountain View', key: 'has_mountain_view' },
-                                            { label: 'Balcony', key: 'has_balcony' },
-                                            { label: 'Internet / Fibre', key: 'has_internet' },
-                                            { label: 'Furnished', key: 'is_furnished' },
-                                            { label: 'Renovated', key: 'mentions_renovated' },
-                                            { label: 'Study', key: 'has_study' },
-                                            { label: 'Modern or Top-End Finishes', key: 'mentions_luxury' },
-                                            { label: 'Garden', key: 'has_garden' },
-                                            { label: 'House Share / Shared Accom', key: 'is_HouseShare' },
-                                            { label: 'Pet Friendly', key: 'is_pet_friendly' }
-                                          ].map((trait, i) => {
-
-                                            let rawVal = traits[trait.key];
-                                            if (trait.key === 'has_sercurity' && rawVal === undefined) rawVal = traits['has_security'];
-
-                                            const isActive = rawVal === true || rawVal === 1 || rawVal === "1" || String(rawVal).toLowerCase() === "true";
-
-                                            return (
-                                              <div
-                                                key={i}
-                                                onClick={() => {
-                                                  if (isEditing) {
-                                                    setEditDraft((prev: any) => ({ ...prev, [trait.key]: isActive ? 0 : 1 }));
-                                                  }
-                                                }}
-                                                className={`flex items-center gap-2 select-none ${isEditing ? 'cursor-pointer hover:bg-white p-1 -m-1 rounded shadow-sm border border-amber-100' : ''}`}
-                                              >
-                                                {isActive ? (
-                                                  <RiCheckLine className="w-4 h-4 text-emerald-500 shrink-0" />
-                                                ) : (
-                                                  <RiCloseLine className="w-4 h-4 text-rose-400 shrink-0" />
-                                                )}
-                                                <span className={isActive ? "text-slate-700 font-medium" : "text-slate-400 line-through"}>
-                                                  {trait.label}
-                                                </span>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-
+                                  {/* --- NEW: Supporting URLs (Comps) Box --- */}
+                                  {Array.isArray(deal.MATCHES) && deal.MATCHES.length > 0 && (
+                                    <div className="md:col-span-2 mt-2 pt-6 border-t border-slate-200">
+                                      <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-wider">
+                                        Supporting Evidence (Historical Matches)
+                                      </h4>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {deal.MATCHES.map((matchUrl: string, compIdx: number) => (
+                                          <a
+                                            key={compIdx}
+                                            href={matchUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 hover:border-amber-300 hover:shadow-sm transition-all group"
+                                          >
+                                            <div className="bg-slate-100 p-1.5 rounded group-hover:bg-amber-100 transition-colors">
+                                              <RiLinkM className="w-4 h-4 text-slate-500 group-hover:text-amber-600" />
+                                            </div>
+                                            <span className="text-blue-600 hover:text-blue-800 truncate font-medium flex-1">
+                                              {matchUrl}
+                                            </span>
+                                          </a>
+                                        ))}
                                       </div>
-                                    );
-                                  })()}
-
-                                  {/* The Re-Calculate Execution Button */}
-                                  {editingDealId === (deal.id || idx) && (
-                                    <button
-                                      onClick={() => handleRevalue(deal)}
-                                      disabled={isRevaluing}
-                                      className="mt-3 w-full bg-slate-900 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors flex justify-center items-center gap-2 shadow-sm"
-                                    >
-                                      {isRevaluing ? <RiLoader4Line className="w-4 h-4 animate-spin" /> : <RiFlashlightLine className="w-4 h-4 text-amber-500" />}
-                                      {isRevaluing ? 'Recalculating...' : 'Run Re-Valuation'}
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* --- NEW: Supporting URLs (Comps) Box --- */}
-                                {Array.isArray(deal.MATCHES) && deal.MATCHES.length > 0 && (
-                                  <div className="md:col-span-2 mt-2 pt-6 border-t border-slate-200">
-                                    <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-wider">
-                                      Supporting Evidence (Historical Matches)
-                                    </h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      {deal.MATCHES.map((matchUrl: string, compIdx: number) => (
-                                        <a
-                                          key={compIdx}
-                                          href={matchUrl}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 hover:border-amber-300 hover:shadow-sm transition-all group"
-                                        >
-                                          <div className="bg-slate-100 p-1.5 rounded group-hover:bg-amber-100 transition-colors">
-                                            <RiLinkM className="w-4 h-4 text-slate-500 group-hover:text-amber-600" />
-                                          </div>
-                                          <span className="text-blue-600 hover:text-blue-800 truncate font-medium flex-1">
-                                            {matchUrl}
-                                          </span>
-                                        </a>
-                                      ))}
                                     </div>
-                                  </div>
-                                )}
+                                  )}
 
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
 
+                </div>
+                </div>
+              )}
               </div>
-            )}
-          </div>
         </div>
       </main>
     </div>
