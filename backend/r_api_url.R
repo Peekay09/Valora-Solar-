@@ -7,11 +7,8 @@ library(readr)
 library(httr)
 library(digest)
 
-# ==========================================
-# SCRAPERAPI FETCH WITH LOCAL CACHE
 # Avoids burning credits on repeat requests for the same listing
-# within a 24-hour window.
-# ==========================================
+
 get_cache_path <- function(url) {
   hash <- digest::digest(url, algo = "md5")
   file.path("/tmp/scrape_cache", paste0(hash, ".rds"))
